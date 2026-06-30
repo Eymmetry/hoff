@@ -1,0 +1,363 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+\newtcolorbox{derivbox}{
+  colback=purple!4, colframe=purple!50!black,
+  fonttitle=\bfseries, title={導出}, arc=3pt, breakable
+}
+
+\title{{\large Hoff 第3章} \\[6pt]
+       \textbf{3.3\; Exponential Families and Conjugate Priors} \\[4pt]
+       {\normalsize ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この節のモチベーション}
+% ===========================
+
+第3章ではここまで，二項モデルとポアソンモデルをそれぞれ独立に扱い，
+それぞれについて共役事前分布（ベータ分布・ガンマ分布）を構成してきた．
+
+\medskip
+\noindent\textbf{疑問：} これらは「たまたま」上手くいったのか，
+それとも共通した構造があるのか？
+
+\medskip
+\noindent 答えは後者で，両モデルは\textbf{1次元指数型分布族}という
+共通のクラスに属している．この構造を使えば，
+共役事前分布を一般的に構成できる．
+
+% ===========================
+\section{1次元指数型分布族}
+% ===========================
+
+\begin{defbox}{1次元指数型分布族}
+密度（または確率質量関数）が次の形で書けるモデルを
+\textbf{1次元指数型分布族}と呼ぶ：
+\[
+  p(y|\phi) = h(y)\,c(\phi)\,e^{\phi\, t(y)},
+\]
+ここで
+\begin{itemize}
+  \item $\phi$：自然パラメータ（推定したいパラメータ）
+  \item $t(y)$：十分統計量
+  \item $c(\phi)$：正規化定数（$\phi$ のみに依存）
+  \item $h(y)$：$\phi$ に依存しない部分
+\end{itemize}
+\end{defbox}
+
+\begin{pointbox}
+指数型分布族の最大の特徴は「データの情報が $t(y)$ に集約される」こと．
+$n$ 個の i.i.d. サンプル $y_1,\ldots,y_n$ に対しては，
+十分統計量 $\sum t(y_i)$（または $\bar{t}(y) = \frac{1}{n}\sum t(y_i)$）
+だけ知っていれば $\phi$ についての推論に十分である．
+\end{pointbox}
+
+% ===========================
+\section{共役事前分布の一般形}
+% ===========================
+
+Diaconis and Ylvisaker (1979) は，指数型分布族に対する共役事前分布が
+次の形で一般的に書けることを示した：
+
+\begin{thmbox}{共役事前分布（一般形）}
+\[
+  p(\phi \mid n_0, t_0) = \kappa(n_0, t_0)\,c(\phi)^{n_0}\,e^{n_0 t_0 \phi},
+\]
+ここで $n_0 > 0$，$t_0$ はハイパーパラメータ．
+\end{thmbox}
+
+この式は一見複雑に見えるが，
+$p(y|\phi) = h(y)c(\phi)e^{\phi t(y)}$ と見比べると，
+「$n_0$ 個のサンプルの尤度」と同じ形をしていることがわかる．
+
+% ===========================
+\section{事後分布の導出}
+% ===========================
+
+$Y_1,\ldots,Y_n \sim$ i.i.d. $p(y|\phi)$ のもとで，
+上の共役事前分布とベイズの定理を使うと：
+
+\begin{derivbox}
+\begin{align*}
+  p(\phi \mid y_1,\ldots,y_n)
+  &\propto p(\phi) \times p(y_1,\ldots,y_n|\phi) \\
+  &\propto c(\phi)^{n_0} e^{n_0 t_0 \phi}
+   \times \prod_{i=1}^n c(\phi)\,e^{\phi\,t(y_i)} \\
+  &= c(\phi)^{n_0+n}
+     \exp\!\left\{\phi \times \left(n_0 t_0 + \sum_{i=1}^n t(y_i)\right)\right\} \\
+  &\propto p\!\left(\phi \;\middle|\; n_0 + n,\;\;
+    \frac{n_0 t_0 + n\bar{t}(y)}{n_0 + n}\right).
+\end{align*}
+ここで $\bar{t}(y) = \frac{1}{n}\sum_{i=1}^n t(y_i)$．
+\end{derivbox}
+
+\begin{thmbox}{事後分布}
+\[
+  \boxed{
+    p(\phi \mid y_1,\ldots,y_n)
+    = p\!\left(\phi \;\middle|\; n_0 + n,\;\;
+      \frac{n_0 t_0 + n\bar{t}(y)}{n_0 + n}\right)
+  }
+\]
+事前分布と同じクラスの分布になる（共役性の確認）．
+\end{thmbox}
+
+事後分布のパラメータを読むと，更新則が明快に見える：
+
+\medskip
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{lll}
+\toprule
+& 事前 & 事後 \\
+\midrule
+サンプルサイズ & $n_0$ & $n_0 + n$ \\
+十分統計量の平均 & $t_0$ & $\dfrac{n_0 t_0 + n\bar{t}(y)}{n_0 + n}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+事後の十分統計量平均は，\textbf{事前の $t_0$ とデータの $\bar{t}(y)$ の加重平均}になっている．
+
+% ===========================
+\section{ハイパーパラメータの解釈}
+% ===========================
+
+\subsection*{$n_0$ の解釈（事前サンプルサイズ）}
+
+事前分布 $p(\phi|n_0, t_0)$ は，$\phi$ の関数として見ると
+「$t(y_i)/n_0 = t_0$ となる $n_0$ 個の仮想的な事前観測から得られた
+尤度」と同じ形をしている．
+
+つまり $n_0$ は「事前情報の強さ」を，
+データ数に換算して表したものである．
+
+\subsection*{$t_0$ の解釈（$t(Y)$ の事前期待値）}
+
+Diaconis and Ylvisaker (1979) は次を示した：
+
+\[
+  E[t(Y)] = E\!\bigl[E[t(Y)|\phi]\bigr]
+  = E\!\left[-\frac{c'(\phi)}{c(\phi)}\right] = t_0.
+\]
+
+すなわち，$t_0$ は十分統計量 $t(Y)$ の\textbf{事前期待値}を表す．
+
+\begin{pointbox}
+両パラメータの直感的な解釈：
+\begin{itemize}
+  \item $n_0$：「事前観測が何個分の情報量か」
+  \item $t_0$：「十分統計量 $t(Y)$ はどのくらいの値になると思っているか」
+\end{itemize}
+これは5.5節で正規モデルに拡張される発想の原型である．
+\end{pointbox}
+
+% ===========================
+\section{例：二項モデル}
+% ===========================
+
+\begin{exbox}{二項モデル}
+
+$Y \sim \mathrm{Bernoulli}(\theta)$ の密度を指数型分布族の形に整理する：
+
+\begin{align*}
+  p(y|\theta)
+  &= \theta^y(1-\theta)^{1-y} \\
+  &= \left(\frac{\theta}{1-\theta}\right)^y (1-\theta) \\
+  &= e^{\phi y}(1+e^\phi)^{-1},
+\end{align*}
+
+ここで $\phi = \log[\theta/(1-\theta)]$ は\textbf{対数オッズ（log-odds）}．
+
+\medskip
+\noindent\textbf{各成分の対応：}
+
+\medskip
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+記号 & 内容 \\
+\midrule
+$\phi$ & $\log[\theta/(1-\theta)]$（対数オッズ） \\
+$t(y)$ & $y$ \\
+$c(\phi)$ & $(1+e^\phi)^{-1}$ \\
+$h(y)$ & $1$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{共役事前分布の導出：}
+
+$\phi$ に対する共役事前分布は
+$p(\phi|n_0, t_0) \propto (1+e^\phi)^{-n_0} e^{n_0 t_0 \phi}$．
+
+変数変換 $\phi \to \theta$ により $\theta$ についての事前分布を求めると：
+
+\[
+  p(\theta|n_0, t_0) \propto \theta^{n_0 t_0 - 1}(1-\theta)^{n_0(1-t_0)-1},
+\]
+
+これは $\mathrm{Beta}(n_0 t_0,\; n_0(1-t_0))$ 分布である．
+
+\medskip
+\noindent\textbf{解釈：}
+\begin{itemize}
+  \item $t_0$：$Y=1$ になる確率の事前期待値
+  \item $n_0 = 1$（弱い事前情報）かつ $t_0 = 1/2$ なら
+        $\mathrm{Beta}(1/2,\, 1/2)$（Jeffreys事前分布）
+\end{itemize}
+
+\medskip
+\noindent\textbf{事後分布：}
+
+$\mathrm{Beta}(t_0,\, 1-t_0)$ 事前分布（$n_0=1$）のもとで：
+
+\[
+  \left\{\theta\;\middle|\; y_1,\ldots,y_n\right\}
+  \sim \mathrm{Beta}\!\left(t_0 + \sum y_i,\;\; (1-t_0) + \sum(1-y_i)\right).
+\]
+
+\end{exbox}
+
+% ===========================
+\section{例：ポアソンモデル}
+% ===========================
+
+\begin{exbox}{ポアソンモデル}
+
+$Y \sim \mathrm{Poisson}(\theta)$ について：
+
+\[
+  p(y|\theta) = \frac{\theta^y e^{-\theta}}{y!}
+  = \frac{1}{y!} \cdot e^{-e^\phi} \cdot e^{\phi y},
+\]
+
+ここで $\phi = \log\theta$．
+
+\medskip
+\noindent\textbf{各成分の対応：}
+
+\medskip
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+記号 & 内容 \\
+\midrule
+$\phi$ & $\log\theta$ \\
+$t(y)$ & $y$ \\
+$c(\phi)$ & $\exp(e^{-\phi}) = e^{-\theta}$ \\
+$h(y)$ & $1/y!$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{共役事前分布の導出：}
+
+変数変換 $\phi \to \theta$ により $\theta$ の事前分布を求めると：
+
+\[
+  p(\theta|n_0, t_0) \propto \theta^{n_0 t_0 - 1} e^{-n_0 \theta},
+\]
+
+これは $\mathrm{Gamma}(n_0 t_0,\; n_0)$ 分布である．
+
+\medskip
+\noindent\textbf{解釈：}
+\begin{itemize}
+  \item $t_0$：$Y$ の事前期待値（母平均の事前予想）
+  \item $n_0 = 1$（弱い事前情報）なら $\mathrm{Gamma}(t_0, 1)$
+\end{itemize}
+
+\medskip
+\noindent\textbf{事後分布：}
+
+$\mathrm{Gamma}(t_0, 1)$ 事前分布（$n_0=1$）のもとで：
+
+\[
+  \left\{\theta\;\middle|\; y_1,\ldots,y_n\right\}
+  \sim \mathrm{Gamma}\!\left(t_0 + \sum y_i,\;\; 1 + n\right).
+\]
+
+\end{exbox}
+
+% ===========================
+\section{3モデルの対応まとめ}
+% ===========================
+
+\begin{center}
+\renewcommand{\arraystretch}{1.8}
+\begin{tabular}{lccc}
+\toprule
+& \textbf{二項モデル} & \textbf{ポアソンモデル} & \textbf{正規モデル（5.5節）} \\
+\midrule
+自然パラメータ $\phi$ & $\log\frac{\theta}{1-\theta}$ & $\log\theta$ & $(\theta/\sigma^2,\; -1/2\sigma^2)$ \\
+十分統計量 $t(y)$ & $y$ & $y$ & $(y,\; y^2)$ \\
+共役事前分布 & Beta & Gamma & Normal $\times$ Inv-Gamma \\
+$t_0$ の解釈 & $E[Y]$ の事前予想 & $E[Y]$ の事前予想 & $(E[Y], E[Y^2])$ の事前予想 \\
+$n_0$ の意味 & 事前サンプルサイズ & 事前サンプルサイズ & 事前サンプルサイズ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{3.3節のまとめ}
+\begin{enumerate}
+  \item 二項・ポアソンモデルはどちらも\textbf{1次元指数型分布族}であり，
+        密度が $p(y|\phi) = h(y)c(\phi)e^{\phi t(y)}$ の形で書ける．
+
+  \item この構造があると，共役事前分布が\textbf{一般的な形}
+        $p(\phi|n_0, t_0) \propto c(\phi)^{n_0} e^{n_0 t_0 \phi}$
+        で構成でき，事後分布も同じクラスに収まる．
+
+  \item 事後分布のパラメータは $n_0 \to n_0 + n$，
+        $t_0 \to \dfrac{n_0 t_0 + n\bar{t}(y)}{n_0+n}$ という
+        \textbf{単純な更新則}で得られる．
+
+  \item ハイパーパラメータは $n_0$（事前サンプルサイズ），
+        $t_0$（十分統計量の事前期待値）という\textbf{直感的な解釈}を持つ．
+
+  \item この枠組みは5.5節で正規モデル（2次元指数型分布族）に拡張され，
+        同じ発想で共役事前分布を期待値ベースで構成できることが示される．
+\end{enumerate}
+\end{thmbox}
+
+\end{document}

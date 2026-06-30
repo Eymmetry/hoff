@@ -1,0 +1,507 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+\newtcolorbox{derivbox}{
+  colback=purple!4, colframe=purple!50!black,
+  fonttitle=\bfseries, title={導出}, arc=3pt, breakable
+}
+
+\title{{\large Hoff 第5章} \\[6pt]
+       \textbf{5.5\; Prior Specification Based on Expectations} \\[4pt]
+       {\normalsize ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この節のモチベーション}
+% ===========================
+
+前節までで正規モデルの共役事前分布として
+
+\[
+  \theta|\sigma^2 \sim \mathrm{Normal}(\mu_0,\, \sigma^2/\kappa_0),
+  \qquad
+  1/\sigma^2 \sim \mathrm{Gamma}(\nu_0/2,\, \nu_0\sigma_0^2/2)
+\]
+
+を使ってきた．ここでのハイパーパラメータ $(\mu_0, \kappa_0, \nu_0, \sigma_0^2)$ は
+「事前サンプルサイズ」などと解釈されてきたが，実際に設定しようとすると難しい．
+
+\medskip
+\noindent
+\textbf{自然な疑問：}「$Y$の期待値は $\mu_0$ くらい，分散は $\sigma_0^2$ くらい」
+という形で事前情報を持っているとき，それをどうハイパーパラメータに変換するのか？
+
+\medskip
+\noindent
+この節では，\textbf{観測量の期待値}（$E[Y]$ と $E[Y^2]$）を指定することで
+ハイパーパラメータを自然に決める方法を導く．
+
+% ===========================
+\section{$p$次元指数型分布族}
+% ===========================
+
+\begin{defbox}{$p$次元指数型分布族}
+密度が次の形で書けるモデルを $p$次元指数型分布族と呼ぶ：
+\[
+  p(y|\phi) = h(y)\,c(\phi)\exp\!\bigl\{\phi^\top t(y)\bigr\},
+\]
+ここで
+\begin{itemize}
+  \item $\phi = (\phi_1, \ldots, \phi_p)$：自然パラメータ
+  \item $t(y) = (t_1(y), \ldots, t_p(y))$：十分統計量
+  \item $c(\phi)$：正規化定数
+\end{itemize}
+\end{defbox}
+
+\subsection*{正規モデルは2次元指数型分布族}
+
+$Y \sim \mathrm{Normal}(\theta, \sigma^2)$ の密度を整理すると，
+
+\[
+  p(y|\theta,\sigma^2)
+  = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\!\left\{-\frac{(y-\theta)^2}{2\sigma^2}\right\}
+  = \frac{1}{\sqrt{2\pi}}\exp\!\left\{\frac{\theta}{\sigma^2}y - \frac{1}{2\sigma^2}y^2
+    - \frac{\theta^2}{2\sigma^2} - \frac{1}{2}\log\sigma^2\right\}
+\]
+
+なので，各成分は次のようになる：
+
+\[
+  t(y) = \begin{pmatrix}y \\ y^2\end{pmatrix},
+  \qquad
+  \phi = \begin{pmatrix}\theta/\sigma^2 \\ -1/(2\sigma^2)\end{pmatrix},
+  \qquad
+  c(\phi) = |\phi_2|^{1/2}\exp\!\left\{\frac{\phi_1^2}{4\phi_2}\right\}.
+\]
+
+\begin{pointbox}
+十分統計量が $t(y) = (y,\, y^2)$ なので，$(\bar{y},\, s^2)$ を知ることは
+$\bigl(\sum y_i,\, \sum y_i^2\bigr)$ を知ることと同値であり，推論に十分な情報が得られる．
+\end{pointbox}
+
+% ===========================
+\section{自然パラメータ $\phi$ による共役事前分布}
+% ===========================
+
+第3章（1次元指数型分布族）と同様に，$p$次元でも共役事前分布は
+$\phi$ の関数として次の形で書ける：
+
+\[
+  p(\phi \mid n_0, t_0)
+  \propto c(\phi)^{n_0} \exp\!\bigl\{n_0\, t_0^\top \phi\bigr\},
+\]
+
+ここで $t_0 = (t_{01}, t_{02})$ は事前的な $Y$ の期待十分統計量，
+すなわち
+
+\[
+  t_{01} = E[Y], \qquad t_{02} = E[Y^2].
+\]
+
+$n_0$ は「事前サンプルサイズ」に相当するハイパーパラメータである．
+
+% ===========================
+\section{$(\theta, \sigma^2)$ へのパラメータ変換}
+% ===========================
+
+自然パラメータ $\phi$ による共役事前分布を $(\theta, \sigma^2)$ で
+書き直すと，大括弧内の指数部分は次の2つの因子に分解できる：
+
+\begin{align*}
+  p(\theta, \sigma^2 \mid n_0, t_0)
+  &\propto
+  (\sigma^2)^{-1/2}\exp\!\left\{-\frac{n_0(\theta - t_{01})^2}{2\sigma^2}\right\} \\
+  &\quad \times\;
+  (\sigma^2)^{-(n_0+5)/2}\exp\!\left\{-\frac{n_0(t_{02}-t_{01}^2)}{2\sigma^2}\right\}.
+\end{align*}
+
+\noindent
+これはそれぞれ標準的な分布の核と一致する：
+
+\medskip
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{lll}
+\toprule
+因子 & 分布の形 & 対応する分布 \\
+\midrule
+第1因子 & $\exp\!\left\{-\dfrac{n_0(\theta-t_{01})^2}{2\sigma^2}\right\}$ &
+  $\theta|\sigma^2 \sim \mathrm{Normal}\!\left(t_{01},\, \dfrac{\sigma^2}{n_0}\right)$ \\[8pt]
+第2因子 & $(\sigma^2)^{-(n_0+5)/2}\exp\!\left\{-\dfrac{n_0(t_{02}-t_{01}^2)}{2\sigma^2}\right\}$ &
+  $\sigma^2 \sim \mathrm{Inv\text{-}Gamma}\!\left(\dfrac{n_0+3}{2},\; \dfrac{n_0(t_{02}-t_{01}^2)}{2}\right)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================
+\section{準備：反復期待値の法則と反復分散の法則}
+% ===========================
+
+以降の導出で繰り返し使う2つの法則を先にまとめる．
+
+\begin{thmbox}{反復期待値の法則（Law of Total Expectation）}
+確率変数 $X, Y$ に対して，
+\[
+  E[Y] = E\!\bigl[E[Y \mid X]\bigr].
+\]
+右辺の内側 $E[Y|X]$ は「$X$ を固定したときの $Y$ の平均」（$X$ の関数），
+外側の $E[\,\cdot\,]$ はそれをさらに $X$ について平均したもの．
+\end{thmbox}
+
+\noindent\textbf{直感的な理解：}
+クラス全体のテスト平均点 $E[Y]$ を求めたいとき，
+「勉強した/しない」でグループに分けて各グループの平均を出し，
+それをグループの割合で加重平均しても同じ答えが出る，ということ．
+
+\medskip
+\noindent\textbf{具体例：}テストの点数 $Y$，「勉強したか」$X$（1=した，0=しない）
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+グループ & グループ内平均 & 割合 \\
+\midrule
+勉強した（$X=1$） & $E[Y|X=1] = 80$ & $P(X=1) = 0.7$ \\
+しなかった（$X=0$） & $E[Y|X=0] = 50$ & $P(X=0) = 0.3$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\[
+  E\!\bigl[E[Y|X]\bigr]
+  = 0.7 \times 80 + 0.3 \times 50 = 71
+  = E[Y].
+\]
+
+\begin{thmbox}{反復分散の法則（Law of Total Variance）}
+\[
+  \mathrm{Var}[Y]
+  = \underbrace{E\!\bigl[\mathrm{Var}[Y \mid X]\bigr]}_{\text{グループ内分散の平均}}
+  + \underbrace{\mathrm{Var}\!\bigl[E[Y \mid X]\bigr]}_{\text{グループ平均どうしの分散}}.
+\]
+\end{thmbox}
+
+\noindent\textbf{直感的な理解：}
+クラス全体の点数のバラつきは，
+「各グループ内のバラつき（$X$ を固定したときの $Y$ の散らばり）」と
+「グループ平均どうしのズレ（$E[Y|X=1]=80$ と $E[Y|X=0]=50$ の差）」
+の2つが合わさったものである．
+
+\medskip
+\noindent\textbf{5.5節での使い方：}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{ll}
+\toprule
+使う式 & 意味 \\
+\midrule
+$E[Y] = E[E[Y|\theta]] = E[\theta]$ & $\theta$ が不明でも，$\theta$ の平均が $Y$ の平均になる \\
+$E[Y^2] = E[E[Y^2|\theta,\sigma^2]]$ & $Y^2$ の全体平均を，内側で $(\theta,\sigma^2)$ を固定して計算 \\
+$\mathrm{Var}[\theta] = E[\mathrm{Var}[\theta|\sigma^2]]$ & $\theta$ の分散を $\sigma^2$ の不確かさで積分して求める \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================
+\section{事前期待値から $t_{01}$，$t_{02}$ を決める}
+% ===========================
+
+\subsection*{「期待する」とはどういう意味か}
+
+ハイパーパラメータを直接決めるのは難しい．$\mu_0, \sigma_0^2$ はモデル内部の量で，
+観測できる $Y$ と直接対応していないからである．
+
+\begin{thmbox}{発想の転換}
+ハイパーパラメータを直接決める代わりに，
+「\textbf{まだ見ていない新しい観測値 $Y$ に対して何を期待するか}」を
+先に決め，それからハイパーパラメータを逆算する．
+\end{thmbox}
+
+具体的には：
+\begin{itemize}
+  \item \textbf{「$Y$ の平均はだいたい $\mu_0$ だろう」}\\
+        （例：女性1人のIQは平均100程度 → $E[Y] = 100$）
+  \item \textbf{「$Y$ は真の平均 $\theta$ の周りに $\sigma_0^2$ 程度バラつくだろう」}\\
+        （例：個人のIQは母平均から $\pm 15$ 点程度 → $E[\mathrm{Var}[Y|\theta,\sigma^2]] = 225$）
+\end{itemize}
+
+この「期待する」は，$\theta$ と $\sigma^2$ の不確かさをすべて積分した
+\textbf{周辺分布 $p(Y)$ での期待値}である．
+つまり「$\theta$ の値を知らない状態で，$\theta \sim$ 事前分布，
+$Y|\theta,\sigma^2 \sim \mathrm{Normal}(\theta,\sigma^2)$ という
+2段階の確率の流れを通じた期待値」を意味する．
+
+\subsection*{正規モデルの条件付き期待値・分散}
+
+導出で繰り返し使う事実をまとめる．
+正規モデル $Y|\theta,\sigma^2 \sim \mathrm{Normal}(\theta,\sigma^2)$，
+事前分布 $\theta|\sigma^2 \sim \mathrm{Normal}(\mu_0, \sigma^2/n_0)$ から直接読める：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lll}
+\toprule
+条件付き量 & 値 & 根拠 \\
+\midrule
+$E[Y|\theta,\sigma^2]$ & $\theta$ & 正規分布の平均はパラメータ $\theta$ \\
+$\mathrm{Var}[Y|\theta,\sigma^2]$ & $\sigma^2$ & 正規分布の分散はパラメータ $\sigma^2$ \\
+$E[\theta|\sigma^2]$ & $\mu_0$ & 正規分布の平均はパラメータ $\mu_0$ \\
+$\mathrm{Var}[\theta|\sigma^2]$ & $\sigma^2/n_0$ & 正規分布の分散はパラメータ $\sigma^2/n_0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent これらは「正規分布だから条件付き期待値・分散はパラメータそのもの」という
+単純な事実であり，法則ではなくモデルの定義から直接来る．
+
+\subsection*{$t_{01}$ の決め方}
+
+「$Y$ の平均が $\mu_0$」すなわち $E[Y] = \mu_0$ を期待するとき：
+
+\[
+  E[Y]
+  \underset{\text{反復期待値の法則}}{=} E\!\bigl[E[Y|\theta]\bigr]
+  \underset{E[Y|\theta]=\theta}{=} E[\theta]
+  = \mu_0.
+\]
+
+ゆえに $t_{01} = \mu_0$．
+
+\subsection*{$t_{02}$ の決め方}
+
+「$Y$ の $\theta$ 周りのバラつきが $\sigma_0^2$」すなわち
+$E[\mathrm{Var}[Y|\theta,\sigma^2]] = \sigma_0^2$ を期待するとき：
+
+\[
+  E\!\bigl[\mathrm{Var}[Y|\theta,\sigma^2]\bigr]
+  \underset{\mathrm{Var}[Y|\theta,\sigma^2]=\sigma^2}{=} E[\sigma^2] = \sigma_0^2.
+\]
+
+これは法則ではなく，正規分布の分散がパラメータ $\sigma^2$ そのものであることを使った代入である．
+
+\medskip
+$t_{02} = E[Y^2]$ を求める．まず $E[Y^2|\theta,\sigma^2]$ を整理する：
+\[
+  E[Y^2|\theta,\sigma^2]
+  = \underbrace{\mathrm{Var}[Y|\theta,\sigma^2]}_{\sigma^2}
+  + \underbrace{(E[Y|\theta,\sigma^2])^2}_{\theta^2}
+  = \sigma^2 + \theta^2.
+\]
+
+\begin{derivbox}
+\begin{align*}
+  t_{02} = E[Y^2]
+  &\underset{\text{反復期待値の法則}}{=} E\!\bigl[E[Y^2|\theta,\sigma^2]\bigr]
+   \underset{\text{上の結果を代入}}{=} E[\sigma^2 + \theta^2]
+   = \underbrace{E[\sigma^2]}_{\sigma_0^2} + E[\theta^2].
+\end{align*}
+
+$E[\theta^2] = \mathrm{Var}[\theta] + \mu_0^2$ であり，$\mathrm{Var}[\theta]$ は
+反復分散の法則と $E[\theta|\sigma^2]=\mu_0$，$\mathrm{Var}[\theta|\sigma^2]=\sigma^2/n_0$ から：
+\[
+  \mathrm{Var}[\theta]
+  = E\!\bigl[\underbrace{\mathrm{Var}[\theta|\sigma^2]}_{\sigma^2/n_0}\bigr]
+  + \mathrm{Var}\!\bigl[\underbrace{E[\theta|\sigma^2]}_{\mu_0=\text{定数}}\bigr]
+  = \frac{\sigma_0^2}{n_0} + 0
+  = \frac{\sigma_0^2}{n_0}.
+\]
+
+したがって：
+\[
+  t_{02} = \sigma_0^2 + \frac{\sigma_0^2}{n_0} + \mu_0^2
+         = \sigma_0^2\cdot\frac{n_0+1}{n_0} + \mu_0^2,
+  \qquad
+  n_0(t_{02} - t_{01}^2) = (n_0+1)\sigma_0^2.
+\]
+\end{derivbox}
+
+\begin{pointbox}
+どちらの導出も同じ構造：
+\begin{enumerate}
+  \item \textbf{反復期待値（分散）の法則}で $(\theta,\sigma^2)$ についての積分を分割する
+  \item \textbf{正規分布の性質}（条件付き期待値・分散 = パラメータそのもの）を代入して計算する
+\end{enumerate}
+「期待する」という主観的な量（$\mu_0$，$\sigma_0^2$）は，
+この2ステップを経てハイパーパラメータ $t_{01}, t_{02}$ に翻訳される．
+\end{pointbox}
+
+% ===========================
+\section{得られる事前分布}
+% ===========================
+
+以上をまとめると，事前期待値 $\mu_0 = E[Y]$，$\sigma_0^2 = E[\mathrm{Var}[Y|\theta,\sigma^2]]$
+を指定したとき，対応する共役事前分布は
+
+\begin{thmbox}{事前分布（期待値ベースのパラメータ化）}
+\[
+  \theta\,|\,\sigma^2 \sim \mathrm{Normal}\!\left(\mu_0,\; \frac{\sigma^2}{n_0}\right)
+\]
+\[
+  \sigma^2 \sim \mathrm{Inv\text{-}Gamma}\!\left(\frac{n_0+3}{2},\; \frac{(n_0+1)\sigma_0^2}{2}\right)
+\]
+\end{thmbox}
+
+\noindent
+共役事前分布の一般形は $\kappa_0$（$\theta$ の事前精度）と $\nu_0$（$\sigma^2$ の自由度）を
+\textbf{独立に}設定できるが，5.5節のアプローチはこれらを $n_0$ ひとつに縛る：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lll}
+\toprule
+ & 一般の共役事前分布 & 5.5節のパラメータ化 \\
+\midrule
+$\theta$ の事前精度 & $\kappa_0$（自由） & $n_0$ \\
+$\sigma^2$ の自由度 & $\nu_0$（自由） & $n_0 + 3$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent 暗黙に $\nu_0 = \kappa_0 + 3$ という制約が入るため，
+自由度は $(\kappa_0, \nu_0)$ の2つから $n_0$ の1つに減る．
+
+\begin{pointbox}
+\textbf{トレードオフ：}
+\begin{itemize}
+  \item \textbf{利点}：$n_0$「事前サンプルサイズ」として直感的に解釈できる
+  \item \textbf{欠点}：「$\theta$ への確信は強いが $\sigma^2$ への確信は弱い」
+        という非対称な設定ができない
+\end{itemize}
+解釈しやすさのために柔軟性を1自由度分だけ犠牲にした設計である．
+\end{pointbox}
+
+\subsection*{弱い事前分布の場合：$n_0 = 1$}
+
+事前情報が少ない場合は $n_0 = 1$ とする：
+
+\[
+  \theta|\sigma^2 \sim \mathrm{Normal}(\mu_0,\; \sigma^2),
+  \qquad
+  1/\sigma^2 \sim \mathrm{Gamma}\!\left(2,\; \sigma_0^2\right).
+\]
+
+この設定のもとで，事前期待値が正しく再現されていることを確認できる：
+
+\[
+  E[Y] = E[E[Y|\theta]] = E[\theta] = \mu_0 \quad \checkmark
+\]
+\[
+  E[\mathrm{Var}[Y|\theta,\sigma^2]] = E[\sigma^2] = \sigma_0^2 \quad \checkmark
+\]
+
+% ===========================
+\section{事後分布}
+% ===========================
+
+$n_0 = 1$ の事前分布のもとで $n$個の i.i.d.\ サンプルを得たとき，
+事後分布は次のようになる：
+
+\begin{thmbox}{事後分布（$n_0=1$ の場合）}
+\[
+  \{\theta\,|\,\sigma^2, y_1,\ldots,y_n\}
+  \sim \mathrm{Normal}\!\left(
+    \frac{\mu_0/\sigma^2 + n\bar{y}}{1/\sigma^2 + n},\;\;
+    \frac{\sigma^2}{n+1}
+  \right)
+\]
+\[
+  \{\sigma^2\,|\,y_1,\ldots,y_n\}
+  \sim \mathrm{Inv\text{-}Gamma}\!\left(
+    2 + \frac{n}{2},\;\;
+    \sigma_0^2 + (n-1)s^2 + \frac{n}{n+1}(\bar{y}-\mu_0)^2
+  \right)
+\]
+\end{thmbox}
+
+\subsection*{事後平均の解釈}
+
+$\theta$ の事後平均は
+
+\[
+  \frac{\mu_0/\sigma^2 + n\bar{y}}{1/\sigma^2 + n}
+  = \underbrace{\frac{1/\sigma^2}{1/\sigma^2 + n}}_{\text{事前の重み}}\mu_0
+  + \underbrace{\frac{n}{1/\sigma^2 + n}}_{\text{データの重み}}\bar{y}.
+\]
+
+第5.3節の公式と同じく，事前平均とデータの加重平均になっている．
+$n \to \infty$ でデータの重みが1に収束し，事前情報の影響が消える．
+
+\subsection*{$\sigma^2$ の事後スケールパラメータの解釈}
+
+スケールパラメータ $\sigma_0^2 + (n-1)s^2 + \dfrac{n}{n+1}(\bar{y}-\mu_0)^2$ の各項：
+
+\medskip
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{ll}
+\toprule
+項 & 意味 \\
+\midrule
+$\sigma_0^2$ & 事前のスケール（事前サンプルサイズ相当の分散） \\
+$(n-1)s^2$ & データの変動（サンプル内の散らばり） \\
+$\dfrac{n}{n+1}(\bar{y}-\mu_0)^2$ & 事前平均とデータ平均のズレ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+3つ目の項は，事前平均とデータの乖離が大きいほど $\sigma^2$ が大きい方向に
+更新されることを意味する（「想定外にズレているなら分散も大きいはず」という情報）．
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{5.5節のまとめ}
+\begin{enumerate}
+  \item 正規モデルは2次元指数型分布族であり，十分統計量は $t(y) = (y, y^2)$，
+        すなわち $(\bar{y}, s^2)$ に相当する．
+
+  \item 共役事前分布を自然パラメータ $\phi$ で書くと，
+        ハイパーパラメータ $t_0$ が観測量 $Y$ の\textbf{事前期待値}（$E[Y]$，$E[Y^2]$）
+        として解釈できる．
+
+  \item 「$Y$の期待値は $\mu_0$，分散の期待値は $\sigma_0^2$」という
+        \textbf{解釈しやすい量}を指定するだけで，$(t_{01}, t_{02})$ が自動的に決まる．
+
+  \item 事前サンプルサイズ $n_0$ だけが調整パラメータとして残り，
+        「事前情報の強さ」を表す．
+
+  \item 得られた事前・事後分布は第5.3節の共役モデルと同じ構造を持ち，
+        事後平均は事前平均とデータ平均の加重平均になる．
+\end{enumerate}
+\end{thmbox}
+
+\end{document}

@@ -1,0 +1,334 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+
+\title{補足資料 \\[6pt]
+       \textbf{十分統計量（Sufficient Statistic）} \\[4pt]
+       {\normalsize ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{直感的な動機}
+% ===========================
+
+データ $y_1, y_2, y_3 = 3, 5, 7$ から母平均 $\theta$ を推定したいとする．
+
+このとき，3つの数字を全部記録しておく必要があるだろうか？
+
+\medskip
+正規モデル $y_i \sim \mathrm{Normal}(\theta, \sigma^2)$ では，
+$\theta$ に関する情報はすべて\textbf{標本平均 $\bar{y} = 5$} に集約されている．
+データの順番や個々の値は $\theta$ の推定に追加の情報をもたらさない．
+
+\medskip
+この「情報の集約」を正確に表現したのが\textbf{十分統計量}の概念である．
+
+% ===========================
+\section{一般的な定義}
+% ===========================
+
+\begin{defbox}{十分統計量（Sufficient Statistic）}
+統計量 $T(y_1,\ldots,y_n)$ が $\theta$ の\textbf{十分統計量}であるとは，
+
+\[
+  p(y_1,\ldots,y_n \mid T(y_1,\ldots,y_n) = t,\; \theta)
+  \;\text{が}\; \theta \;\text{に依存しない}
+\]
+
+ことをいう．つまり，$T$ の値を知った後では，
+生データを追加で見ても $\theta$ についての情報が増えない．
+\end{defbox}
+
+\medskip
+\noindent この定義は直感と対応している：
+
+\begin{itemize}
+  \item $T$ に $\theta$ の情報がすべて入っている
+        $\;\Rightarrow\;$ $T$ を固定すると，残りのデータのバラつきは $\theta$ と無関係
+        $\;\Rightarrow\;$ 条件付き分布が $\theta$ に依存しない
+\end{itemize}
+
+% ===========================
+\section{因数分解定理（確認に使う定理）}
+% ===========================
+
+定義を直接確認するのは難しいため，実用的には次の定理を使う．
+
+\begin{thmbox}{Fisher--Neyman の因数分解定理}
+$T(y_1,\ldots,y_n)$ が $\theta$ の十分統計量である
+$\;\Longleftrightarrow\;$ 同時密度（または確率質量関数）が
+
+\[
+  p(y_1,\ldots,y_n \mid \theta)
+  = g\!\bigl(T(y_1,\ldots,y_n),\; \theta\bigr) \times h(y_1,\ldots,y_n)
+\]
+
+と因数分解できる．ここで $g$ は $T$ と $\theta$ のみに依存し，
+$h$ は $\theta$ に依存しない．
+\end{thmbox}
+
+\begin{pointbox}
+確認の手順：同時密度を書き下して，
+「$\theta$ を含む部分」と「$\theta$ を含まない部分」に分けられるか確かめる．
+$\theta$ を含む部分がデータに依存する形が $T$ になっている．
+\end{pointbox}
+
+\subsection*{なぜ因数分解定理が定義と同値なのか}
+
+同値を示すには2方向を示す必要がある．
+
+\paragraph{方向1：因数分解できる $\Rightarrow$ 定義を満たす}
+
+$p(y_1,\ldots,y_n|\theta) = g(T,\theta) \times h(y)$ と分解できるとして，
+条件付き分布を計算する：
+
+\[
+  p(y \mid T=t, \theta)
+  = \frac{p(y,\, T=t \mid \theta)}{p(T=t \mid \theta)}.
+\]
+
+分子は $T(y)=t$ を満たすとき $p(y|\theta) = g(t,\theta) \times h(y)$．
+
+分母は $T=t$ になるデータを全部足し合わせたものなので，
+
+\[
+  p(T=t \mid \theta)
+  = \sum_{\{y:\,T(y)=t\}} g(t,\theta) \times h(y)
+  = g(t,\theta) \times \sum_{\{y:\,T(y)=t\}} h(y).
+\]
+
+割り算すると $g(t,\theta)$ が約分されて，
+
+\[
+  p(y \mid T=t, \theta)
+  = \frac{g(t,\theta) \times h(y)}{g(t,\theta) \times \displaystyle\sum_{\{y:\,T(y)=t\}} h(y)}
+  = \frac{h(y)}{\displaystyle\sum_{\{y:\,T(y)=t\}} h(y)}.
+\]
+
+\textbf{$\theta$ が消えた}．これがまさに定義の内容である．
+
+\begin{pointbox}
+核心は「$g(t,\theta)$ が分子と分母で同じ値なので約分できる」こと．\\
+$\theta$ の情報は全部 $T$ に乗っており，$T$ を固定したら $\theta$ が消える
+という構造が，計算の上で直接見えている．
+\end{pointbox}
+
+\paragraph{方向2：定義を満たす $\Rightarrow$ 因数分解できる}
+
+$T$ が十分統計量（定義を満たす）とする．
+すなわち $p(y \mid T=t, \theta) = q(y \mid t)$（$\theta$ に依存しない）と書ける．
+
+尤度を次のように分解する：
+
+\[
+  p(y \mid \theta)
+  = p(y \mid T=T(y),\, \theta) \times p(T=T(y) \mid \theta).
+\]
+
+第1因子は定義より $q(y \mid T(y))$（$\theta$ に依存しない）なので，
+
+\[
+  h(y) = q(y \mid T(y)),
+  \qquad
+  g(T(y),\, \theta) = p(T=T(y) \mid \theta)
+\]
+
+とおけば，
+
+\[
+  p(y \mid \theta) = g(T(y),\, \theta) \times h(y)
+\]
+
+という因数分解が得られる．\qed
+
+% ===========================
+\section{例で確認する}
+% ===========================
+
+\begin{exbox}{二項モデル：$T = \sum y_i$}
+
+$y_1,\ldots,y_n \overset{\text{i.i.d.}}{\sim} \mathrm{Bernoulli}(\theta)$ のとき，
+同時確率質量関数は
+
+\[
+  p(y_1,\ldots,y_n|\theta)
+  = \prod_{i=1}^n \theta^{y_i}(1-\theta)^{1-y_i}
+  = \theta^{\sum y_i}(1-\theta)^{n - \sum y_i}.
+\]
+
+因数分解すると
+
+\[
+  = \underbrace{\theta^{\sum y_i}(1-\theta)^{n-\sum y_i}}_{g(T,\,\theta),\; T=\sum y_i}
+  \;\times\;
+  \underbrace{1}_{h(y_1,\ldots,y_n)}.
+\]
+
+$h$ が定数なので，$T = \sum y_i$ が十分統計量である．
+
+\medskip
+\noindent\textbf{直感：}「1が何回出たか」さえ知れば，
+どの順番で出たかは $\theta$ の推定に関係ない．
+\end{exbox}
+
+\begin{exbox}{ポアソンモデル：$T = \sum y_i$}
+
+$y_1,\ldots,y_n \overset{\text{i.i.d.}}{\sim} \mathrm{Poisson}(\theta)$ のとき，
+
+\[
+  p(y_1,\ldots,y_n|\theta)
+  = \prod_{i=1}^n \frac{\theta^{y_i} e^{-\theta}}{y_i!}
+  = \underbrace{e^{-n\theta}\,\theta^{\sum y_i}}_{g(T,\,\theta)}
+    \;\times\;
+    \underbrace{\prod_{i=1}^n \frac{1}{y_i!}}_{h(y_1,\ldots,y_n)}.
+\]
+
+よって $T = \sum y_i$ が十分統計量．
+\end{exbox}
+
+\begin{exbox}{正規モデル：$T = (\bar{y},\, s^2)$}
+
+$y_1,\ldots,y_n \overset{\text{i.i.d.}}{\sim} \mathrm{Normal}(\theta, \sigma^2)$（$\sigma^2$ 既知）のとき，
+
+\[
+  p(y_1,\ldots,y_n|\theta)
+  \propto \exp\!\left\{-\frac{\sum(y_i - \theta)^2}{2\sigma^2}\right\}.
+\]
+
+指数部分を展開すると
+
+\[
+  \sum(y_i - \theta)^2
+  = \sum y_i^2 - 2\theta \sum y_i + n\theta^2,
+\]
+
+なので
+
+\[
+  p(y_1,\ldots,y_n|\theta)
+  = \underbrace{\exp\!\left\{\frac{\theta \sum y_i}{\sigma^2}
+    - \frac{n\theta^2}{2\sigma^2}\right\}}_{g(\sum y_i,\,\theta)}
+    \;\times\;
+    \underbrace{\exp\!\left\{-\frac{\sum y_i^2}{2\sigma^2}\right\}}_{h(y_1,\ldots,y_n)}.
+\]
+
+よって $T = \sum y_i$（あるいは同値な $\bar{y}$）が十分統計量．
+
+$\sigma^2$ も未知のときは $T = (\sum y_i,\, \sum y_i^2)$，
+すなわち $(\bar{y},\, s^2)$ が2次元の十分統計量になる．
+
+\end{exbox}
+
+% ===========================
+\section{指数型分布族との関係}
+% ===========================
+
+3.3節で学んだ指数型分布族 $p(y|\phi) = h(y)c(\phi)e^{\phi\,t(y)}$ において，
+因数分解定理を適用すると：
+
+\[
+  p(y_1,\ldots,y_n|\phi)
+  = \underbrace{c(\phi)^n \exp\!\left\{\phi \sum t(y_i)\right\}}_{g\left(\sum t(y_i),\,\phi\right)}
+    \;\times\;
+    \underbrace{\prod_{i=1}^n h(y_i)}_{h(y_1,\ldots,y_n)}.
+\]
+
+\begin{thmbox}{指数型分布族における十分統計量}
+1次元指数型分布族では，$T = \sum_{i=1}^n t(y_i)$ が $\phi$ の十分統計量である．
+\end{thmbox}
+
+これは3つのモデルに一致する：
+
+\medskip
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lccc}
+\toprule
+モデル & $t(y)$ & 十分統計量 $T$ & 同値な統計量 \\
+\midrule
+二項 & $y$ & $\sum y_i$ & （1の個数） \\
+ポアソン & $y$ & $\sum y_i$ & $\bar{y}$（標本平均） \\
+正規（$\sigma^2$既知） & $y$ & $\sum y_i$ & $\bar{y}$ \\
+正規（$\sigma^2$未知） & $(y,\, y^2)$ & $(\sum y_i,\, \sum y_i^2)$ & $(\bar{y},\, s^2)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================
+\section{ベイズ推論との関係}
+% ===========================
+
+十分統計量が重要なのは，ベイズ推論でも事後分布が十分統計量のみに依存するからである：
+
+\[
+  p(\phi \mid y_1,\ldots,y_n)
+  \propto p(\phi) \times p(y_1,\ldots,y_n|\phi)
+  = p(\phi) \times g(T, \phi) \times h(y_1,\ldots,y_n).
+\]
+
+$h$ は $\phi$ に依存しないので，
+
+\[
+  p(\phi \mid y_1,\ldots,y_n) \propto p(\phi) \times g(T, \phi).
+\]
+
+\begin{pointbox}
+事後分布は生データ $(y_1,\ldots,y_n)$ ではなく，
+\textbf{十分統計量 $T$ だけに依存する}．
+
+つまり，ベイズ更新において「情報の圧縮」が保証されている．
+共役事前分布のハイパーパラメータの更新則が $T$ だけを使う
+シンプルな形になるのも，この構造が根拠になっている．
+\end{pointbox}
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{十分統計量のまとめ}
+\begin{enumerate}
+  \item \textbf{定義}：$T$ を知った後に生データを見ても $\theta$ の情報が増えない
+        $\;\Leftrightarrow\;$ $T$ を条件付けた生データの分布が $\theta$ に依存しない．
+
+  \item \textbf{確認方法}：因数分解定理 --- 同時密度が
+        $g(T,\theta) \times h(y)$ と分解できれば $T$ が十分統計量．
+
+  \item \textbf{指数型分布族}：$p(y|\phi) = h(y)c(\phi)e^{\phi t(y)}$ では
+        $T = \sum t(y_i)$ が自動的に十分統計量になる．
+
+  \item \textbf{ベイズ推論}：事後分布は十分統計量のみに依存するので，
+        データを $T$ に圧縮してから更新すれば十分である．
+\end{enumerate}
+\end{thmbox}
+
+\end{document}

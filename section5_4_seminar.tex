@@ -1,0 +1,444 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\pgfmathdeclarefunction{gauss}{2}{%
+  \pgfmathparse{1/(#2*sqrt(2*pi))*exp(-((x-#1)^2)/(2*#2^2))}%
+}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+% ---- カラーボックス定義 ----
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt,
+  breakable
+}
+
+\title{{\large Hoff 第5章} \\[6pt]
+       \textbf{5.4\; Bias, Variance and Mean Squared Error} \\[4pt]
+       {\normalsize ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この節のモチベーション}
+% ===========================
+
+前節までで，正規モデルにおける$\theta$の事後平均（ベイズ推定量）
+
+\[
+  \hat{\theta}_b = \frac{\kappa_0}{\kappa_0+n}\,\mu_0
+                 + \frac{n}{\kappa_0+n}\,\bar{y}
+                 = w\bar{y} + (1-w)\mu_0,
+  \qquad w = \frac{n}{\kappa_0+n}
+\]
+
+を導いた．これは事前平均$\mu_0$と標本平均$\bar{y}$の加重平均になっている．
+
+\medskip
+\noindent
+\textbf{素朴な疑問：} 推定量として「標本平均 $\hat{\theta}_e = \bar{y}$」と
+「ベイズ推定量 $\hat{\theta}_b$」のどちらが良いのか？
+
+\medskip
+\noindent
+この問いに答えるために，\textbf{バイアス・分散・平均二乗誤差（MSE）}という枠組みを使う．
+
+% ===========================
+\section{推定量の標本特性}
+% ===========================
+
+\begin{defbox}{点推定量（Point Estimator）}
+未知パラメータ$\theta$の\textbf{点推定量}とは，データ$(y_1,\ldots,y_n)$を
+パラメータ空間$\Theta$の一点に変換する関数のことである．
+\end{defbox}
+
+\medskip
+推定量はデータの関数なので，\textbf{それ自体が確率変数}である．
+データを無限回集め直したとしたら，推定値はどのように分布するか？
+---これが\textbf{標本特性（sampling properties）}の考え方である．
+
+\bigskip
+今回比較する2つの推定量：
+
+\[
+  \hat{\theta}_e = \bar{y}
+  \qquad \text{（標本平均）}
+\]
+\[
+  \hat{\theta}_b = w\bar{y} + (1-w)\mu_0
+  \qquad \text{（ベイズ推定量：事後平均）}
+\]
+
+真の母平均を$\theta_0$，母分散を$\sigma^2$（既知と仮定）とおく．
+
+% ===========================
+\section{バイアス（偏り）}
+% ===========================
+
+\begin{defbox}{バイアス（Bias）}
+推定量$\hat{\theta}$のバイアスを次で定義する：
+\[
+  \mathrm{Bias}[\hat{\theta} \mid \theta_0]
+  = E[\hat{\theta} \mid \theta_0] - \theta_0.
+\]
+バイアスが0の推定量を\textbf{不偏推定量（unbiased estimator）}と呼ぶ．
+\end{defbox}
+
+\subsection*{各推定量のバイアスを計算する}
+
+\paragraph{標本平均 $\hat{\theta}_e$ のバイアス}
+
+\[
+  E[\hat{\theta}_e \mid \theta_0]
+  = E\!\left[\frac{1}{n}\sum_{i=1}^n y_i \;\middle|\; \theta_0\right]
+  = \frac{1}{n}\sum_{i=1}^n \theta_0 = \theta_0
+\]
+
+\[
+  \therefore\quad \mathrm{Bias}[\hat{\theta}_e \mid \theta_0] = 0
+  \qquad \Rightarrow \quad \hat{\theta}_e \text{ は\textbf{不偏}}
+\]
+
+\paragraph{ベイズ推定量 $\hat{\theta}_b$ のバイアス}
+
+\[
+  E[\hat{\theta}_b \mid \theta_0]
+  = w\,E[\bar{y} \mid \theta_0] + (1-w)\mu_0
+  = w\theta_0 + (1-w)\mu_0
+\]
+
+\[
+  \therefore\quad \mathrm{Bias}[\hat{\theta}_b \mid \theta_0]
+  = w\theta_0 + (1-w)\mu_0 - \theta_0
+  = (1-w)(\mu_0 - \theta_0)
+\]
+
+$\mu_0 \neq \theta_0$ のとき，$\hat{\theta}_b$ は\textbf{偏りあり（biased）}．
+
+\begin{pointbox}
+不偏性は一見良さそうだが，それだけで推定量の良さは語れない．
+たとえば$y_1$だけも$\theta_0$の不偏推定量だが，$\bar{y}$より真値から遠い．
+「バイアスがゼロ＝良い推定量」ではない！
+\end{pointbox}
+
+% ===========================
+\section{平均二乗誤差（MSE）}
+% ===========================
+
+推定量 $\hat{\theta}$ が真値 $\theta_0$ にどれだけ近いかを総合的に評価するために，
+\textbf{平均二乗誤差（Mean Squared Error; MSE）}を用いる．
+
+\begin{defbox}{MSE（Mean Squared Error）}
+\[
+  \mathrm{MSE}[\hat{\theta} \mid \theta_0]
+  = E\!\left[(\hat{\theta} - \theta_0)^2 \;\middle|\; \theta_0\right]
+\]
+\end{defbox}
+
+\subsection*{MSE の分解}
+
+$m = E[\hat{\theta} \mid \theta_0]$ とおいて式を展開する：
+
+\begin{align*}
+  \mathrm{MSE}[\hat{\theta} \mid \theta_0]
+  &= E[(\hat{\theta} - \theta_0)^2 \mid \theta_0] \\
+  &= E\!\bigl[(\hat{\theta} - m + m - \theta_0)^2 \mid \theta_0\bigr] \\
+  &= E[(\hat{\theta} - m)^2 \mid \theta_0]
+   + 2\,\underbrace{E[(\hat{\theta}-m) \mid \theta_0]}_{=\,0}\,(m-\theta_0)
+   + (m - \theta_0)^2.
+\end{align*}
+
+$E[\hat{\theta} - m \mid \theta_0] = 0$ より第2項は消えるので，
+
+\begin{thmbox}{MSE の分解定理}
+\[
+  \mathrm{MSE}[\hat{\theta} \mid \theta_0]
+  \;=\;
+  \underbrace{\mathrm{Var}[\hat{\theta} \mid \theta_0]}_{\text{分散}}
+  \;+\;
+  \underbrace{\mathrm{Bias}^2[\hat{\theta} \mid \theta_0]}_{\text{バイアスの2乗}}
+\]
+\end{thmbox}
+
+\begin{pointbox}
+MSE は「分散」と「バイアスの2乗」のトレードオフで決まる．\\
+バイアスがあっても，分散を十分小さくできれば MSE を改善できる可能性がある．
+\end{pointbox}
+
+% ===========================
+\section{2つの推定量の MSE 比較}
+% ===========================
+
+\subsection*{分散の比較}
+
+\[
+  \mathrm{Var}[\hat{\theta}_e \mid \theta_0, \sigma^2]
+  = \mathrm{Var}\!\left[\bar{y}\right] = \frac{\sigma^2}{n}
+\]
+
+\[
+  \mathrm{Var}[\hat{\theta}_b \mid \theta_0, \sigma^2]
+  = \mathrm{Var}[w\bar{y}] = w^2\,\frac{\sigma^2}{n}
+  < \frac{\sigma^2}{n}
+\]
+
+$w < 1$ なので，\textbf{ベイズ推定量の方が分散は常に小さい}．
+
+\subsection*{MSE の比較}
+
+\[
+  \mathrm{MSE}[\hat{\theta}_e \mid \theta_0]
+  = \frac{\sigma^2}{n} + 0
+  = \frac{\sigma^2}{n}
+\]
+
+\[
+  \mathrm{MSE}[\hat{\theta}_b \mid \theta_0]
+  = w^2\,\frac{\sigma^2}{n} + (1-w)^2(\mu_0 - \theta_0)^2
+\]
+
+\subsection*{どちらが良いか？}
+
+代数計算により，$\mathrm{MSE}[\hat{\theta}_b] < \mathrm{MSE}[\hat{\theta}_e]$ となる条件は
+
+\[
+  \boxed{
+    (\mu_0 - \theta_0)^2
+    < \sigma^2\!\left(\frac{1}{n} + \frac{2}{\kappa_0}\right)
+  }
+\]
+
+\paragraph{導出の概略}
+
+$\mathrm{MSE}[\hat{\theta}_b] < \mathrm{MSE}[\hat{\theta}_e]$ を整理すると
+
+\begin{align*}
+  w^2\,\frac{\sigma^2}{n} + (1-w)^2(\mu_0-\theta_0)^2
+  &< \frac{\sigma^2}{n} \\
+  (1-w)^2(\mu_0-\theta_0)^2
+  &< (1-w^2)\,\frac{\sigma^2}{n}
+   = (1-w)(1+w)\,\frac{\sigma^2}{n} \\
+  (1-w)(\mu_0-\theta_0)^2
+  &< (1+w)\,\frac{\sigma^2}{n}
+\end{align*}
+
+$w = n/(\kappa_0+n)$ を代入すると，
+\[
+  \frac{1+w}{1-w}
+  = \frac{\,1 + \dfrac{n}{\kappa_0+n}\,}{1 - \dfrac{n}{\kappa_0+n}}
+  = \frac{\kappa_0+2n}{\kappa_0},
+\]
+よって
+\[
+  (\mu_0-\theta_0)^2
+  < \frac{\sigma^2}{n} \cdot \frac{\kappa_0+2n}{\kappa_0}
+  = \sigma^2\!\left(\frac{1}{n} + \frac{2}{\kappa_0}\right).
+\]
+
+\begin{pointbox}
+\textbf{解釈：}
+事前平均$\mu_0$が真値$\theta_0$から「$\sigma^2(1/n + 2/\kappa_0)$以内に近い」なら，
+ベイズ推定量の方が MSE の意味で優れる．
+
+\medskip
+事前情報が多少でもあれば（つまり$\mu_0$が大きく外れていなければ），
+ベイズ推定量は標本平均よりも良い推定を与えることができる．
+\end{pointbox}
+
+% ===========================
+\section{例：IQスコアによる比較}
+% ===========================
+
+\begin{exbox}{IQスコア}
+
+IQテストは一般母集団で$\mu=100$，$\sigma=15$になるよう設計されている．
+ある町の住民から$n$人をサンプリングして，
+その町の平均IQスコア$\theta$を推定する．
+
+\medskip
+\noindent\textbf{設定：}
+\begin{itemize}
+  \item 事前分布：$\mu_0 = 100$（一般母集団の平均を使う）
+  \item 真のパラメータ（未知）：$\theta_0 = 112$，$\sigma^2 = 169$
+  \item 実はこの町は非常に優秀で，真の平均が100よりずっと高い！
+\end{itemize}
+
+\medskip
+\noindent\textbf{各推定量の MSE：}
+
+\[
+  \mathrm{MSE}[\hat{\theta}_e \mid \theta_0] = \frac{169}{n}
+\]
+
+\[
+  \mathrm{MSE}[\hat{\theta}_b \mid \theta_0]
+  = w^2\,\frac{169}{n} + (1-w)^2 \times (112-100)^2
+  = w^2\,\frac{169}{n} + (1-w)^2 \times 144
+\]
+
+\medskip
+\noindent\textbf{図1：相対MSE（$n$の関数として）} \\[4pt]
+$w = n/(\kappa_0+n)$ とおくと，相対MSEは
+\[
+  \frac{\mathrm{MSE}[\hat{\theta}_b]}{\mathrm{MSE}[\hat{\theta}_e]}
+  = w^2 + (1-w)^2 \cdot \frac{144\,n}{169}
+\]
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=8.5cm, height=6.5cm,
+  xlabel={サンプルサイズ $n$},
+  ylabel={相対MSE},
+  xmin=0, xmax=50, ymin=0, ymax=1.15,
+  legend pos=south east,
+  legend style={font=\small},
+  grid=major, grid style={dotted, gray!50},
+  tick label style={font=\small},
+  label style={font=\small},
+]
+% κ₀=0: w=1, ratio=1 (常に1)
+\addplot[black, dashed, thick, domain=0.5:50, samples=2] {1};
+\addlegendentry{$\kappa_0=0$（標本平均）}
+
+% κ₀=1
+\addplot[blue!80!black, thick, domain=0.5:50, samples=200]
+  { (x/(1+x))^2 + (1/(1+x))^2 * 144*x/169 };
+\addlegendentry{$\kappa_0=1$}
+
+% κ₀=2
+\addplot[red!80!black, thick, domain=0.5:50, samples=200]
+  { (x/(2+x))^2 + (2/(2+x))^2 * 144*x/169 };
+\addlegendentry{$\kappa_0=2$}
+
+% κ₀=3
+\addplot[green!60!black, thick, domain=0.5:50, samples=200]
+  { (x/(3+x))^2 + (3/(3+x))^2 * 144*x/169 };
+\addlegendentry{$\kappa_0=3$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\medskip
+\noindent\textbf{図2：推定量の標本分布（$n=5$のとき）} \\[4pt]
+$n=5$, $\sigma^2=169$, $\mu_0=100$, $\theta_0=112$ として，各推定量は以下の正規分布に従う：
+
+\smallskip
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+推定量 & 期待値 & 標準偏差 \\
+\midrule
+$\hat\theta_e$ & $112$ & $\sqrt{169/5} \approx 5.81$ \\
+$\hat\theta_b\ (\kappa_0=1)$ & $110.0$ & $\approx 4.84$ \\
+$\hat\theta_b\ (\kappa_0=2)$ & $108.6$ & $\approx 4.15$ \\
+$\hat\theta_b\ (\kappa_0=3)$ & $107.5$ & $\approx 3.63$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=8.5cm, height=6.5cm,
+  xlabel={IQスコアの推定値},
+  ylabel={密度},
+  xmin=90, xmax=135,
+  ymin=0, ymax=0.115,
+  legend style={
+    at={(0.5,-0.22)}, anchor=north,
+    legend columns=2, font=\small,
+    /tikz/every even column/.append style={column sep=0.5em}
+  },
+  grid=major, grid style={dotted, gray!50},
+  tick label style={font=\small},
+  label style={font=\small},
+]
+% 真値 θ₀=112 の縦線
+\addplot[gray!60, dashed, thick] coordinates {(112,0) (112,0.115)};
+\addlegendentry{真値 $\theta_0=112$}
+
+% θ̂_e: Normal(112, 5.8138)
+\addplot[black, thick, domain=90:135, samples=200]
+  { gauss(112, 5.8138) };
+\addlegendentry{$\hat\theta_e$（標本平均）}
+
+% θ̂_b κ₀=1: Normal(110, 4.8447)
+\addplot[blue!80!black, thick, domain=90:135, samples=200]
+  { gauss(110, 4.8447) };
+\addlegendentry{$\hat\theta_b,\ \kappa_0=1$}
+
+% θ̂_b κ₀=2: Normal(108.571, 4.1526)
+\addplot[red!80!black, thick, domain=90:135, samples=200]
+  { gauss(108.571, 4.1526) };
+\addlegendentry{$\hat\theta_b,\ \kappa_0=2$}
+
+% θ̂_b κ₀=3: Normal(107.5, 3.6336)
+\addplot[green!60!black, thick, domain=90:135, samples=200]
+  { gauss(107.5, 3.6336) };
+\addlegendentry{$\hat\theta_b,\ \kappa_0=3$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\medskip
+\noindent
+\textbf{読み取れること：}
+\begin{itemize}
+  \item \textbf{図1}：$n$が小さいほどベイズ推定量の相対MSEが低い（事前情報が効く）．
+        $n \to \infty$ でどの曲線も1に収束する（データが増えれば差がなくなる）．
+  \item \textbf{図2}：$\kappa_0$が大きいほど分布が左（$\mu_0=100$寄り）にシフトし，
+        かつ分布が狭くなる（分散減少）．$\hat\theta_e$は真値$\theta_0=112$に
+        中心があるが分散が最大．
+  \item バイアス（中心のズレ）と分散（幅）のトレードオフが視覚的に確認できる．
+\end{itemize}
+
+\end{exbox}
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{5.4節のまとめ}
+\begin{enumerate}
+  \item \textbf{バイアス}は推定量の期待値と真値のズレ．不偏性は良い推定量の必要条件ではない．
+
+  \item \textbf{MSE = 分散 + バイアス$^2$}というトレードオフがある．
+
+  \item ベイズ推定量$\hat{\theta}_b$は標本平均$\hat{\theta}_e$よりバイアスがあるが分散が小さい．
+
+  \item $(\mu_0 - \theta_0)^2 < \sigma^2(1/n + 2/\kappa_0)$が成立するとき，
+  ベイズ推定量は MSE の意味で標本平均より優れる．
+
+  \item 事前情報が多少でもあれば（$\mu_0$が大きく外れていなければ），
+  特に$n$が小さい場合にベイズ推定量は有利になる．
+\end{enumerate}
+\end{thmbox}
+
+\end{document}

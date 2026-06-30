@@ -1,0 +1,242 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+\newtcolorbox{warningbox}{
+  colback=red!5, colframe=red!60!black,
+  fonttitle=\bfseries, title={注意}, arc=3pt, breakable
+}
+
+\title{{\large Hoff 第5章} \\[6pt]
+       \textbf{5.6\; The Normal Model for Non-Normal Data} \\[4pt]
+       {\normalsize ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この節のモチベーション}
+% ===========================
+
+正規モデルを使うには「データが正規分布に従う」という仮定が必要なはずだが，
+実際のデータはしばしば離散・歪み・有界などの非正規な特徴を持つ．
+
+\medskip
+それでも正規モデルが広く使われる理由は何か？
+
+\medskip
+この節では\textbf{中心極限定理（CLT）}を根拠として，
+非正規データに対しても正規モデルが（少なくとも母平均の推論には）
+有効であることを説明する．
+ただし正規モデルで推論できる対象には\textbf{限界}があることも示す．
+
+% ===========================
+\section{中心極限定理のおさらい}
+% ===========================
+
+\begin{thmbox}{中心極限定理（CLT）}
+母集団の分布によらず，標本平均 $\bar{Y}_n$ の標本分布は
+$n$ が大きいほど正規分布に近づく：
+
+\[
+  p(\bar{y} \mid \theta, \sigma^2)
+  \approx \mathrm{Normal}\!\left(\theta,\, \frac{\sigma^2}{n}\right).
+\]
+
+$n$ が大きくなるにつれて近似の精度は向上する．
+\end{thmbox}
+
+\begin{pointbox}
+CLT が言っているのは「個々のデータ $y_i$ が正規分布に従う」ではなく，
+「\textbf{標本平均 $\bar{y}$ が}正規分布に従う」ということ．
+この違いが重要で，正規モデルが有効な場面と限界を決める．
+\end{pointbox}
+
+% ===========================
+\section{標本平均の標本分布：Monte Carlo 実験}
+% ===========================
+
+\begin{exbox}{GSS データ（子どもの数）}
+
+1998年の General Social Survey では，40歳以上の女性921人の
+子どもの数を記録した．この母集団分布は
+
+\begin{itemize}
+  \item 離散的（0, 1, 2, \ldots の整数値）
+  \item 非対称（右歪み）
+  \item 有界（0以上）
+\end{itemize}
+
+であり，正規分布とはほど遠い．母集団平均は $\theta = 2.42$．
+
+\medskip
+\noindent\textbf{注：} 実際のGSSデータは非公開のため，以下の図は
+$\mathrm{Poisson}(2.42)$ から生成した $N=921$ の擬似母集団を用いた
+モンテカルロシミュレーション（$S=10000$ 回）による近似である．
+歪度・分散などの細部は実データと異なる場合がある．
+
+\medskip
+\noindent\textbf{モンテカルロ実験：}
+この921人からサイズ $n \in \{5, 15, 45\}$ の標本を
+繰り返し抽出し，$\bar{Y}_n$ の標本分布を近似する．
+
+\medskip
+\noindent\textbf{結果：} 図1〜3 は教科書 Figure 5.7 に対応する．
+
+\begin{center}
+\includegraphics[width=\textwidth]{fig5_7.pdf}
+\end{center}
+
+\bigskip
+\noindent
+\textbf{読み取れること：}
+\begin{itemize}
+  \item \textbf{図1}：母集団は離散・右歪みで，正規分布とはかけ離れている．
+  \item \textbf{図2}：$n=5$ では標本平均がやや歪むが，$n=15, 45$ になると
+        正規分布とほぼ区別がつかなくなる（CLT の効果）．
+  \item \textbf{図3}：$n=45$ のとき $\bar{y}$ と $s^2$ の同時分布は
+        \textbf{正の相関}を持つ（楕円の傾き）．
+        これは正規母集団では成り立たない性質で，
+        正規モデルで $\theta$ と $\sigma^2$ の同時推論をすると
+        この相関が無視されてしまう．
+\end{itemize}
+
+\end{exbox}
+
+% ===========================
+\section{非正規データへの正規モデルの適用}
+% ===========================
+
+\subsection*{母平均 $\theta$ の近似事後分布}
+
+CLT より $p(\bar{y}|\theta, \sigma^2) \approx \mathrm{Normal}(\theta, \sigma^2/n)$
+が成り立つので，この近似尤度を使った事後分布が計算できる．
+
+$\sigma^2$ も未知の場合，同時事後分布は：
+
+\begin{align}
+  p(\theta, \sigma^2 \mid \bar{y}, s^2)
+  &\propto p(\theta, \sigma^2)
+    \times p(\bar{y} \mid \theta, \sigma^2)
+    \times p(s^2 \mid \bar{y}, \theta, \sigma^2) \notag\\
+  &\approx p(\theta, \sigma^2)
+    \times \mathrm{Normal}\!\left(\bar{y};\, \theta, \frac{\sigma^2}{n}\right)
+    \times p(s^2 \mid \bar{y}, \theta, \sigma^2). \tag{5.2}
+\end{align}
+
+データが正規分布に従う場合，$p(s^2|\bar{y}, \theta, \sigma^2)$ には
+$\bar{y}$ と $s^2$ の独立性から
+
+\[
+  p(s^2 \mid \theta, \sigma^2)
+  = \mathrm{Gamma}\!\left(s^2;\;\frac{n-1}{2},\;\frac{n-1}{2\sigma^2}\right)
+\]
+
+を使うことができ，これを (5.2) に代入すると
+生データが正規分布に従う場合の事後分布と\textbf{完全に一致する}．
+
+\subsection*{なぜ母平均の推論がうまくいくか}
+
+$n$ が十分大きいとき，$s^2 \approx \sigma^2$ が成り立つので，
+
+\[
+  \sqrt{n}\,\frac{\bar{Y} - \theta}{s}
+  \;\overset{\cdot}{\sim}\;
+  \mathrm{Normal}(0, 1).
+\]
+
+これは正規データの場合に $t_{n-1}$ 分布に従うが，
+$n$ が大きくなると $t_{n-1}$ は $\mathrm{Normal}(0,1)$ に近づく．
+
+\begin{thmbox}{母平均の事後分布（非正規データへの応用）}
+$n$ が十分大きければ，データが正規分布に従わなくても，
+母平均 $\theta$ の事後分布（周辺分布）は正規モデルを使った場合と
+\textbf{近似的に一致する}．
+\end{thmbox}
+
+% ===========================
+\section{正規モデルの限界}
+% ===========================
+
+\begin{warningbox}
+母平均以外の量（分位点，歪度，裾の確率など）については，
+正規モデルを非正規データに適用すると\textbf{誤った推論}を与えることがある．
+
+\medskip
+理由：正規密度はすべて対称で歪度がゼロだが，
+現実の非正規母集団はそうとは限らない．
+
+\medskip
+たとえば GSS データの歪度は $E[(Y-\theta)^3]/\sigma^3 = 0.89$ であり，
+正規モデルはこれを0と推定してしまう．
+その結果，\textbf{右裾にいる人（子どもが多い人）の割合を過小評価する}．
+\end{warningbox}
+
+\medskip
+\noindent まとめると：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{lcc}
+\toprule
+推論対象 & 正規モデルの適用 & 理由 \\
+\midrule
+母平均 $\theta$ & 有効（大標本） & CLT により $\bar{y}$ が正規近似できる \\
+分散 $\sigma^2$ & おおむね有効 & $s^2$ の標本分布は近似的に扱える \\
+歪度・尖度 & 不適切 & 正規分布は常に対称で歪度ゼロ \\
+裾の確率 & 不適切 & 分布の形が大きく異なる \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{5.6節のまとめ}
+\begin{enumerate}
+  \item 正規モデルをデータに直接当てはめる根拠は「データが正規分布に従う」
+        ことではなく，「\textbf{標本平均が正規分布で近似できる}」という CLT にある．
+
+  \item モンテカルロ実験により，非正規母集団でも $n$ が増えるにつれて
+        $\bar{Y}_n$ の標本分布が正規分布に近づくことが確認できる．
+
+  \item データが非正規でも，正規モデルによる\textbf{母平均の事後分布}は
+        大標本で近似的に正しい．これは正規データの場合の事後分布と
+        一致することから示される．
+
+  \item ただし，正規モデルが有効なのは\textbf{母平均の推論に限られる}．
+        歪度や裾の確率など分布の形に関わる量には正規モデルは不適切であり，
+        そのような量を推論するには非正規モデルが必要になる．
+\end{enumerate}
+\end{thmbox}
+
+\end{document}

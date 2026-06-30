@@ -1,0 +1,497 @@
+\documentclass[12pt,a4paper]{ltjsarticle}
+\usepackage{luatexja}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\geometry{margin=2.5cm}
+
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{gray!10},
+  frame=single,
+  breaklines=true,
+  keywordstyle=\color{blue},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red},
+}
+
+\title{\textbf{Hoff 5.3節 解説}\\
+\large 平均と分散の同時ベイズ推定\\
+\normalsize \textit{Joint Inference for the Mean and Variance}}
+\author{A First Course in Bayesian Statistical Methods --- Peter D. Hoff}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+%--------------------------------------------------
+\section{ガンマ分布とは}
+%--------------------------------------------------
+
+\subsection{形の直感}
+
+ガンマ分布 $\mathrm{Gamma}(a, b)$ の確率密度関数は
+
+\[
+  p(x) \propto x^{a-1} e^{-bx}, \quad x > 0.
+\]
+
+パラメータの意味：
+\begin{itemize}
+  \item $a$（shape）：分布の「形」を決める。$a$ が大きいほど山が高く、鋭くなる。
+  \item $b$（rate）：分布の「スケール」を決める。$b$ が大きいほど山が左（0付近）に寄る。
+\end{itemize}
+
+平均と分散は $\mathrm{E}[X] = a/b$、$\mathrm{Var}[X] = a/b^2$。
+
+\bigskip
+\noindent\textbf{shape $a$ を変えたとき}（$b=1$ 固定）：
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=6cm,
+  domain=0:10, samples=200,
+  xmin=0, xmax=10, ymin=0, ymax=0.55,
+  xlabel={$x$}, ylabel={$p(x)$},
+  legend pos=north east,
+  every axis/.append style={font=\small},
+]
+% Gamma(a,b): p(x) = b^a / Gamma(a) * x^(a-1) * exp(-b*x)
+% a=1, b=1: exponential, p(x)=exp(-x)
+\addplot[blue, thick] {exp(-x)};
+\addlegendentry{$a=1,\;b=1$（指数分布）}
+% a=2, b=1: p(x) = x*exp(-x)
+\addplot[red, thick] {x*exp(-x)};
+\addlegendentry{$a=2,\;b=1$}
+% a=5, b=1: p(x) = x^4*exp(-x)/24
+\addplot[teal, thick] {x^4*exp(-x)/24};
+\addlegendentry{$a=5,\;b=1$}
+% a=10,b=1: p(x) = x^9*exp(-x)/362880
+\addplot[orange, thick] {x^9*exp(-x)/362880};
+\addlegendentry{$a=10,\;b=1$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+  \item $a=1$：単調減少（指数分布）。「ほぼ 0 付近が最も確からしい」
+  \item $a$ が増えると山ができ、右にシフトし、形が正規分布に近づく（中心極限定理）
+\end{itemize}
+
+\bigskip
+\noindent\textbf{rate $b$ を変えたとき}（$a=3$ 固定）：
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=6cm,
+  domain=0:10, samples=200,
+  xmin=0, xmax=10, ymin=0, ymax=0.85,
+  xlabel={$x$}, ylabel={$p(x)$},
+  legend pos=north east,
+  every axis/.append style={font=\small},
+]
+% a=3,b=0.5: p(x) = 0.5^3/2 * x^2 * exp(-0.5x)
+\addplot[blue, thick] {0.5^3/2 * x^2 * exp(-0.5*x)};
+\addlegendentry{$a=3,\;b=0.5$（平均6）}
+% a=3,b=1: p(x) = x^2*exp(-x)/2
+\addplot[red, thick] {x^2*exp(-x)/2};
+\addlegendentry{$a=3,\;b=1$（平均3）}
+% a=3,b=2: p(x) = 2^3/2 * x^2 * exp(-2x)
+\addplot[teal, thick] {2^3/2 * x^2 * exp(-2*x)};
+\addlegendentry{$a=3,\;b=2$（平均1.5）}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+$b$ が大きいほど山が左に寄り、狭くなる。$b$ はスケール（目盛りの細かさ）を制御している。
+
+\subsection{物理的な直感：待ち時間}
+
+ガンマ分布は「ポアソン過程で $a$ 回イベントが起きるまでの待ち時間」として自然に現れる。
+たとえば：
+\begin{itemize}
+  \item 放射性崩壊で 5 回検出されるまでの時間 $\sim \mathrm{Gamma}(5, \lambda)$
+  \item コールセンターに 3 件の電話がかかってくるまでの時間 $\sim \mathrm{Gamma}(3, \lambda)$
+\end{itemize}
+
+$a=1$ のときが指数分布（1回目の待ち時間）で、それを $a$ 個足し合わせたものがガンマ分布。
+
+\subsection{逆ガンマ分布との関係}
+
+$X \sim \mathrm{Gamma}(a,b)$ のとき、$Y = 1/X$ の分布を\textbf{逆ガンマ分布}と呼ぶ。
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=5.5cm,
+  xmin=0, xmax=5, ymin=0, ymax=1.2,
+  xlabel={},
+  legend pos=north east,
+  every axis/.append style={font=\small},
+  title={ガンマ分布（左）と対応する逆ガンマ分布（右）},
+  xtick={0,1,2,3,4,5},
+]
+% Gamma(3,2): p(x) = 4*x^2*exp(-2x)
+\addplot[blue, thick, domain=0:5, samples=200] {4*x^2*exp(-2*x)};
+\addlegendentry{$\mathrm{Gamma}(3,2)$（精度 $1/\sigma^2$ の分布）}
+% InvGamma(3,2): p(y) = 2^3/Gamma(3) * y^(-3-1) * exp(-2/y) = 4*y^(-4)*exp(-2/y)
+\addplot[red, thick, domain=0.1:5, samples=300] {4*x^(-4)*exp(-2/x)};
+\addlegendentry{逆ガンマ$(3,2)$（分散 $\sigma^2$ の分布）}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+逆ガンマ分布は右に長い裾を持つ。これは「分散が非常に大きい可能性もゼロではない」という
+自然な性質を反映している。
+
+%--------------------------------------------------
+\section{問題設定}
+%--------------------------------------------------
+
+これまでの節では「分散 $\sigma^2$ が既知」という簡単な場合を扱っていた。
+しかし現実には\textbf{平均 $\theta$ も分散 $\sigma^2$ も両方わからない}。
+5.3節ではその状況を扱う。
+
+データ $y_1, \ldots, y_n$ が与えられたとき、ベイズの定理より
+
+\[
+  p(\theta, \sigma^2 \mid y_1, \ldots, y_n)
+  = \frac{p(y_1, \ldots, y_n \mid \theta, \sigma^2)\, p(\theta, \sigma^2)}{p(y_1, \ldots, y_n)}
+\]
+
+を計算し、両パラメータを同時に推定する。
+
+%--------------------------------------------------
+\section{事前分布の設計}
+%--------------------------------------------------
+
+二つのパラメータの同時事前分布を構成するため、条件付き確率の分解を使う：
+
+\[
+  p(\theta, \sigma^2) = p(\theta \mid \sigma^2)\, p(\sigma^2).
+\]
+
+\subsection{$\theta$ の条件付き事前分布}
+
+$\sigma^2$ が与えられたもとでの $\theta$ の事前分布：
+
+\[
+  \theta \mid \sigma^2 \sim \mathrm{Normal}\!\left(\mu_0,\, \frac{\sigma^2}{\kappa_0}\right).
+\]
+
+$\kappa_0$ は「事前観測数」として解釈できる。
+$\kappa_0$ が大きいほど $\mu_0$ への信念が強く、事後分布に対する事前分布の影響が大きくなる。
+
+\subsection{$\sigma^2$ の事前分布：逆ガンマ分布}
+
+$\sigma^2$（分散）に直接ガンマ分布を使うと正規分布モデルに対して共役にならない。
+一方、\textbf{精度 $1/\sigma^2$} にガンマ分布を使うと共役になる：
+
+\[
+  \frac{1}{\sigma^2} \sim \mathrm{Gamma}\!\left(\frac{\nu_0}{2},\, \frac{\nu_0 \sigma_0^2}{2}\right).
+\]
+
+これを $\sigma^2$ の言葉で表すと「\textbf{逆ガンマ分布}」と呼ぶ。
+
+この事前分布のもとでのモーメントは以下の通り：
+\begin{itemize}
+  \item $\mathrm{E}[\sigma^2] = \sigma_0^2\, \dfrac{\nu_0/2}{\nu_0/2 - 1}$
+  \item $\mathrm{mode}[\sigma^2] = \sigma_0^2\, \dfrac{\nu_0/2}{\nu_0/2 + 1} < \sigma_0^2$
+  \item $\mathrm{Var}[\sigma^2]$ は $\nu_0$ が増えると減少する
+\end{itemize}
+
+パラメータ $(\sigma_0^2,\, \nu_0)$ は「事前サンプルの分散と標本数」として解釈できる。
+
+\bigskip
+まとめると、全体の事前分布と観測モデルは
+
+\begin{align*}
+  \frac{1}{\sigma^2} &\sim \mathrm{Gamma}\!\left(\frac{\nu_0}{2},\, \frac{\nu_0\sigma_0^2}{2}\right), \\
+  \theta \mid \sigma^2 &\sim \mathrm{Normal}\!\left(\mu_0,\, \frac{\sigma^2}{\kappa_0}\right), \\
+  Y_1, \ldots, Y_n \mid \theta, \sigma^2 &\overset{\mathrm{i.i.d.}}{\sim} \mathrm{Normal}(\theta,\, \sigma^2).
+\end{align*}
+
+%--------------------------------------------------
+\section{事後分布の導出}
+%--------------------------------------------------
+
+同時事後分布も同じ形に分解できる：
+
+\[
+  p(\theta, \sigma^2 \mid \mathbf{y})
+  = p(\theta \mid \sigma^2, \mathbf{y})\, p(\sigma^2 \mid \mathbf{y}).
+\]
+
+\subsection{$\theta$ の条件付き事後分布}
+
+$\sigma^2$ が既知のときの条件付き事後分布は正規分布になる：
+
+\[
+  \theta \mid \sigma^2, \mathbf{y} \sim \mathrm{Normal}\!\left(\mu_n,\, \frac{\sigma^2}{\kappa_n}\right),
+\]
+
+ただし
+
+\[
+  \kappa_n = \kappa_0 + n, \qquad
+  \mu_n = \frac{\kappa_0 \mu_0 + n\bar{y}}{\kappa_n}.
+\]
+
+$\mu_n$ は事前平均 $\mu_0$ と標本平均 $\bar{y}$ の加重平均になっており、
+サンプル数 $n$ が増えるにつれてデータに引き寄せられる。
+
+\subsection{$\sigma^2$ の周辺事後分布}
+
+$\theta$ を積分消去すると（計算はやや煩雑だが Exercise 5.3 に委ねられている）：
+
+\[
+  \frac{1}{\sigma^2} \mid \mathbf{y} \sim \mathrm{Gamma}\!\left(\frac{\nu_n}{2},\, \frac{\nu_n\sigma_n^2}{2}\right),
+\]
+
+ただし
+
+\begin{align*}
+  \nu_n &= \nu_0 + n, \\
+  \sigma_n^2 &= \frac{1}{\nu_n}\left[\nu_0\sigma_0^2 + (n-1)s^2 + \frac{\kappa_0 n}{\kappa_n}(\bar{y} - \mu_0)^2\right].
+\end{align*}
+
+ここで $s^2 = \sum_{i=1}^n (y_i - \bar{y})^2/(n-1)$ は標本分散。
+$\nu_n \sigma_n^2$ の各項の意味を表にまとめる：
+
+\bigskip
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+項 & 意味 \\
+\midrule
+$\nu_0\sigma_0^2$ & 事前の「平方和」（prior sum of squares）\\
+$(n-1)s^2$ & データからの「平方和」（sample sum of squares）\\
+$\dfrac{\kappa_0 n}{\kappa_n}(\bar{y}-\mu_0)^2$ & 事前平均とデータ平均のズレによるペナルティ\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%--------------------------------------------------
+\section{モンテカルロサンプリング}
+%--------------------------------------------------
+
+$\theta$ だけの周辺事後分布 $p(\theta \mid \mathbf{y})$ を直接計算するのは面倒なため、
+\textbf{モンテカルロ法}を使う。
+
+次の手順を $S$ 回繰り返す：
+
+\begin{enumerate}
+  \item $\sigma^{2(s)} \sim \mathrm{inverse\text{-}gamma}(\nu_n/2,\; \nu_n\sigma_n^2/2)$ をサンプル
+  \item $\theta^{(s)} \sim \mathrm{Normal}(\mu_n,\; \sigma^{2(s)}/\kappa_n)$ をサンプル
+\end{enumerate}
+
+このとき $\{\theta^{(1)}, \ldots, \theta^{(S)}\}$ は $\theta$ の\textbf{周辺事後分布}からの（独立な）サンプルになる。
+これはなぜかというと、各 $\theta^{(s)}$ は異なる $\sigma^{2(s)}$ の値に条件付けられているが、
+それらを合わせると $\sigma^2$ を周辺化したことと等価になるからである。
+
+Rコードでは2行で実装できる：
+
+\begin{lstlisting}
+s2.postsample   <- 1/rgamma(10000, nun/2, s2n*nun/2)
+theta.postsample <- rnorm(10000, mun, sqrt(s2.postsample/kn))
+\end{lstlisting}
+
+95\% 信用区間は \lstinline{quantile(theta.postsample, c(.025, .975))} で得られる。
+
+%--------------------------------------------------
+\section{頻度論の $t$ 検定}
+%--------------------------------------------------
+
+\subsection{検定とは}
+
+\textbf{統計的検定}とは、データをもとに「ある仮説が正しいか疑わしいか」を判断する手続きである。
+
+基本的な発想は\textbf{背理法}と同じ：
+
+\begin{enumerate}
+  \item とりあえず「何もない」という仮説（帰無仮説 $H_0$）を立てる
+  \item $H_0$ が正しいと仮定したとき、今回のデータが得られる確率（$p$ 値）を計算する
+  \item $p$ 値が非常に小さければ「$H_0$ のもとでこのデータが出るのはおかしい」と判断し、$H_0$ を棄却する
+\end{enumerate}
+
+\noindent
+例えば「このコインは表裏が公平か？」という問題では、
+$H_0 =$ 「表が出る確率は $1/2$」と置く。
+100 回投げて 90 回表が出たとき、公平なコインでそれが起きる確率は非常に小さい。
+よって「このコインは公平ではない」と結論づける。
+
+\bigskip
+\noindent
+平均の検定でも同様に：$H_0 =$ 「母平均は $\theta_0$」と置いたとき、
+観測されたデータ（特に標本平均 $\bar{y}$）が $\theta_0$ から大きく離れていれば $H_0$ を棄却する。
+「どのくらい離れているか」を $\sigma^2$ が未知な状況で定量化するのが $t$ 統計量である。
+
+\subsection{$t$ 分布とは}
+
+$t$ 分布（Student の $t$ 分布）は正規分布に似た左右対称の釣り鐘型だが、
+裾が重い（extreme な値が出やすい）。自由度 $\nu$ というパラメータで形が決まる。
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm, height=6cm,
+  domain=-4:4, samples=200,
+  xmin=-4, xmax=4, ymin=0, ymax=0.42,
+  xlabel={$t$}, ylabel={密度},
+  legend pos=north east,
+  every axis/.append style={font=\small},
+]
+% Standard normal N(0,1)
+\addplot[black, thick, dashed] {exp(-x^2/2)/sqrt(2*pi)};
+\addlegendentry{標準正規分布 $N(0,1)$}
+% t with nu=1 (Cauchy): p(t) = 1/(pi*(1+t^2))
+\addplot[red, thick] {1/(pi*(1+x^2))};
+\addlegendentry{$t_1$（自由度1）}
+% t with nu=3: p(t) = (1+(t^2/3))^(-2) * 2/(sqrt(3)*B(3/2,1/2))
+% = Gamma(2)/( sqrt(3*pi)*Gamma(1.5) ) * (1+t^2/3)^(-2)
+% = 1/(2*sqrt(3)) * (1+t^2/3)^(-2)  ... actually:
+% C = Gamma((nu+1)/2)/(sqrt(nu*pi)*Gamma(nu/2))
+% nu=3: Gamma(2)/(sqrt(3pi)*Gamma(3/2)) = 1/(sqrt(3pi)*sqrt(pi)/2) = 2/(pi*sqrt(3))
+\addplot[blue, thick] {2/(pi*sqrt(3)) * (1+x^2/3)^(-2)};
+\addlegendentry{$t_3$（自由度3）}
+% t with nu=10
+% C = Gamma(5.5)/(sqrt(10*pi)*Gamma(5)) = (3.5*2.5*1.5*0.5*sqrt(pi))/(sqrt(10*pi)*24)
+% = (3.5*2.5*1.5*0.5)/(sqrt(10)*24) = 6.5625/(24*sqrt(10))
+\addplot[teal, thick] {6.5625/(24*sqrt(10)) * (1+x^2/10)^(-5.5)};
+\addlegendentry{$t_{10}$（自由度10）}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+自由度 $\nu$ が大きいほど正規分布に近づく（$\nu \to \infty$ で $N(0,1)$ に収束）。
+自由度が小さいと裾が重く、中心が低い。
+
+\subsection{$t$ 分布が生まれる理由}
+
+$Y_1, \ldots, Y_n \overset{\mathrm{i.i.d.}}{\sim} N(\theta, \sigma^2)$ として、
+$\sigma^2$ が既知なら標本平均 $\bar{Y}$ を標準化すると正規分布に従う：
+
+\[
+  Z = \frac{\bar{Y} - \theta}{\sigma/\sqrt{n}} \sim N(0, 1).
+\]
+
+しかし $\sigma^2$ が未知のとき、$\sigma$ を標本標準偏差 $s = \sqrt{\frac{1}{n-1}\sum(y_i-\bar{y})^2}$ で置き換えると：
+
+\[
+  T = \frac{\bar{Y} - \theta}{s/\sqrt{n}} \sim t_{n-1}.
+\]
+
+$s$ 自体がランダムな量なので、$T$ の裾が $Z$ より重くなる。
+$n$ が大きいほど $s \approx \sigma$ が安定し、$t_{n-1}$ は $N(0,1)$ に近づく。
+
+\subsection{$t$ 検定の手順}
+
+「母平均は $\theta_0$ か？」という仮説を検定したいとする。
+
+\begin{enumerate}
+  \item \textbf{仮説の設定}\\
+    帰無仮説 $H_0\colon \theta = \theta_0$、対立仮説 $H_1\colon \theta \neq \theta_0$
+
+  \item \textbf{検定統計量の計算}\\
+    \[
+      t_{\mathrm{obs}} = \frac{\bar{y} - \theta_0}{s/\sqrt{n}}
+    \]
+
+  \item \textbf{$p$ 値の計算}\\
+    $H_0$ が正しいと仮定したとき $|T| \geq |t_{\mathrm{obs}}|$ になる確率：
+    \[
+      p\text{-value} = \Pr(|T| \geq |t_{\mathrm{obs}}| \mid \theta = \theta_0), \quad T \sim t_{n-1}.
+    \]
+    $p$ 値が小さい（例：$< 0.05$）なら「$H_0$ は疑わしい」と判断する。
+
+  \item \textbf{95\% 信頼区間}\\
+    $t_{n-1}$ 分布の 2.5\% 点を $t^*$ とすると：
+    \[
+      \bar{y} \pm t^* \cdot \frac{s}{\sqrt{n}}.
+    \]
+    この区間は「手順を繰り返すと 95\% の割合で真の $\theta$ を含む」という意味。
+\end{enumerate}
+
+\subsection{重要な注意：頻度論とベイズの解釈の違い}
+
+頻度論では $\theta$ は固定された定数で、$\bar{Y}$ がランダム：
+
+\[
+  \frac{\bar{Y} - \theta}{s/\sqrt{n}} \;\Big|\; \theta \;\sim\; t_{n-1}
+  \quad \text{（$\theta$ 固定・$\bar{Y}$ がばらつく）}
+\]
+
+「95\% 信頼区間が $\theta$ を含む」とは、データを何度も取り直したときに 95\% の割合で含む、という意味であって、「この特定の区間に $\theta$ が 95\% の確率で入っている」という意味ではない。
+
+%--------------------------------------------------
+\section{無情報事前分布との接続}
+%--------------------------------------------------
+
+\subsection{事前情報をゼロに近づける}
+
+$\kappa_0, \nu_0 \to 0$（事前情報をゼロに近づける）とすると：
+
+\[
+  \mu_n \to \bar{y}, \qquad
+  \sigma_n^2 \to \frac{1}{n}\sum_{i=1}^n (y_i - \bar{y})^2.
+\]
+
+このとき $\theta$ の周辺事後分布（「improper prior」から得られる形式的な分布）は：
+
+\[
+  \frac{\theta - \bar{y}}{s/\sqrt{n}} \;\Big|\; y_1, \ldots, y_n \;\sim\; t_{n-1}.
+\]
+
+\subsection{ベイズと頻度論の一致}
+
+これは前節の $t$ 検定と\textbf{数式としては同じ}だが、解釈が逆：
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+ & 式 & 何が固定で何がランダムか \\
+\midrule
+頻度論 & $\dfrac{\bar{Y} - \theta}{s/\sqrt{n}} \sim t_{n-1}$ & $\theta$ 固定、データがランダム \\[10pt]
+ベイズ（無情報） & $\dfrac{\theta - \bar{y}}{s/\sqrt{n}} \sim t_{n-1}$ & データ固定、$\theta$ がランダム \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+ベイズの 95\% \textbf{信用区間}（credible interval）は「$\theta$ がこの区間に入る確率が 95\%」という直接的な意味を持つ。
+無情報事前分布のもとでは、信用区間と頻度論の信頼区間が数値的に一致するという面白い結果が成り立つ。
+
+%--------------------------------------------------
+\section{まとめ}
+%--------------------------------------------------
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+ステップ & 内容 \\
+\midrule
+事前分布の設計 & $p(\theta,\sigma^2) = p(\theta\mid\sigma^2)\,p(\sigma^2)$ に分解 \\
+共役性の利用 & 事後分布も同じ形に分解できる \\
+サンプリング & $\sigma^2 \to \theta$ の順にサンプルして周辺分布を近似 \\
+無情報極限 & 事前情報 $\to 0$ で頻度論の $t$ 分布に一致 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\bigskip
+\noindent\textbf{物理的直感：}
+分散がわからない状態は「測定誤差の大きさ自体も推定しながら実験する」状況に対応する。
+$\sigma^2$ の不確かさを逆ガンマ分布で表現し、それを $\theta$ の推定に伝播させることで、
+$\sigma^2$ が既知の場合よりも広い（不確かさの大きい）事後分布が得られる。
+
+\end{document}
