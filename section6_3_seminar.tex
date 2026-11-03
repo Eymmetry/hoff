@@ -1,0 +1,387 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+\newtcolorbox{warningbox}{
+  colback=red!5, colframe=red!60!black,
+  fonttitle=\bfseries, title={注意}, arc=3pt, breakable
+}
+
+\title{{\large Hoff 第6章} \\[6pt]
+       \textbf{6.3\; Sampling from the Conditional Distributions} \\[4pt]
+       {\normalsize （条件付き分布からのサンプリング）ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この節の狙い}
+% ===========================
+
+6.2節の離散近似は，グリッドの置き場所と次元の呪いという代償が大きすぎた．
+そこで\textbf{サンプリングの路線に戻る}．ただし作戦を変える．
+
+\medskip
+第5章・6.1節の作戦は「\textbf{周辺}分布 $p(\sigma^2 \mid \boldsymbol{y})$ から引いて，
+次に条件付き分布 $p(\theta \mid \sigma^2, \boldsymbol{y})$ から引く」であった．
+これは半共役事前分布のもとで\textbf{1段目が破綻した}．
+
+\medskip
+本節の作戦は\textbf{周辺分布を一切使わない}：
+\begin{center}
+\textbf{完全条件付き分布だけを使って，同時分布からの標本を作れないか？}
+\end{center}
+
+\noindent そのために，まず相方である $p(\sigma^2 \mid \theta, \boldsymbol{y})$ を求める．
+
+% ===========================
+\section{$\sigma^2$ の完全条件付き分布}
+% ===========================
+
+\paragraph{設定}
+いま\textbf{$\theta$ の値を知っている}と仮定する（もちろん本当は知らないが，
+一時的にそう仮定する）．このとき精度 $\tilde{\sigma}^2 = 1/\sigma^2$ の
+条件付き分布を求めたい．
+
+\medskip
+出発点は，条件付き分布が同時分布に比例するという事実である
+（$\theta$ と $\boldsymbol{y}$ を固定しているので，
+$\tilde{\sigma}^2$ に依存しないものはすべて定数として無視できる）：
+\begin{align*}
+  p(\tilde{\sigma}^2 \mid \theta, y_1, \ldots, y_n)
+  &\propto p(y_1, \ldots, y_n,\, \theta,\, \tilde{\sigma}^2) \\
+  &= p(y_1, \ldots, y_n \mid \theta, \tilde{\sigma}^2)\;
+     p(\theta \mid \tilde{\sigma}^2)\; p(\tilde{\sigma}^2).
+\end{align*}
+
+\begin{pointbox}
+\textbf{ここで事前独立が効く}
+
+$\theta$ と $\tilde{\sigma}^2$ が事前独立（半共役事前分布）なら
+$p(\theta \mid \tilde{\sigma}^2) = p(\theta)$ となり，
+これは $\tilde{\sigma}^2$ に\textbf{依存しない定数}なので落とせる：
+\[
+  p(\tilde{\sigma}^2 \mid \theta, y_1, \ldots, y_n)
+  \;\propto\; p(y_1, \ldots, y_n \mid \theta, \tilde{\sigma}^2)\, p(\tilde{\sigma}^2).
+\]
+
+\medskip
+第5章の\textbf{共役}事前分布だったら，$p(\theta \mid \sigma^2)$ は
+$\mathrm{Normal}(\mu_0, \sigma^2/\kappa_0)$ であって
+$\sigma^2$ に依存するので\textbf{落とせない}．
+6.1節で「半共役は計算を難しくする」と見たが，
+完全条件付き分布に関しては\textbf{むしろ簡単にしている}．
+\end{pointbox}
+
+\paragraph{計算}
+右辺の2つの因子を，$\tilde{\sigma}^2$ の関数として書き下す．
+
+\medskip
+\noindent 尤度（$\mathrm{Normal}(\theta, 1/\tilde{\sigma}^2)$ の積）：
+\begin{align*}
+  p(y_1, \ldots, y_n \mid \theta, \tilde{\sigma}^2)
+  &= \prod_{i=1}^{n} \left(\frac{\tilde{\sigma}^2}{2\pi}\right)^{1/2}
+    \exp\!\left\{-\frac{\tilde{\sigma}^2 (y_i - \theta)^2}{2}\right\} \\[4pt]
+  &\propto (\tilde{\sigma}^2)^{n/2}
+    \exp\!\left\{-\tilde{\sigma}^2 \sum_{i=1}^{n}(y_i - \theta)^2 \big/ 2\right\}.
+\end{align*}
+
+\noindent 事前分布（$\mathrm{Gamma}(\nu_0/2,\ \nu_0\sigma_0^2/2)$，第2引数はレート）：
+\[
+  p(\tilde{\sigma}^2)
+  \;\propto\; (\tilde{\sigma}^2)^{\nu_0/2 - 1}
+    \exp\!\left\{-\tilde{\sigma}^2\, \nu_0\sigma_0^2 / 2\right\}.
+\]
+
+\noindent 掛け合わせると，$\tilde{\sigma}^2$ の\textbf{べき}と\textbf{指数の肩}が
+それぞれ足し算になる：
+\begin{align*}
+  p(\tilde{\sigma}^2 \mid \theta, y_1, \ldots, y_n)
+  &\propto \underbrace{(\tilde{\sigma}^2)^{n/2}
+     \exp\!\left\{-\tilde{\sigma}^2 \textstyle\sum (y_i - \theta)^2 / 2\right\}}_{\text{尤度}}
+   \times \underbrace{(\tilde{\sigma}^2)^{\nu_0/2 - 1}
+     \exp\!\left\{-\tilde{\sigma}^2 \nu_0\sigma_0^2 / 2\right\}}_{\text{事前分布}} \\[6pt]
+  &= (\tilde{\sigma}^2)^{(\nu_0 + n)/2 - 1}
+    \times \exp\!\left\{-\tilde{\sigma}^2
+      \times \left[\nu_0\sigma_0^2 + \textstyle\sum (y_i - \theta)^2\right] \big/ 2 \right\}.
+\end{align*}
+
+\medskip
+これは $x^{a-1}e^{-bx}$ の形，すなわち\textbf{ガンマ密度のカーネル}である．
+係数を読み取れば
+\[
+  a = \frac{\nu_0 + n}{2},
+  \qquad
+  b = \frac{\nu_0\sigma_0^2 + \sum (y_i - \theta)^2}{2}.
+\]
+
+\begin{thmbox}{$\sigma^2$ の完全条件付き分布}
+半共役事前分布のもと，
+\begin{align*}
+  \{\tilde{\sigma}^2 \mid \theta, y_1, \ldots, y_n\}
+    &\;\sim\; \mathrm{Gamma}\!\left(\frac{\nu_n}{2},\ \frac{\nu_n \sigma_n^2(\theta)}{2}\right), \\[4pt]
+  \text{すなわち}\quad
+  \{\sigma^2 \mid \theta, y_1, \ldots, y_n\}
+    &\;\sim\; \mathrm{inverse\text{-}gamma}\!\left(\frac{\nu_n}{2},\ \frac{\nu_n \sigma_n^2(\theta)}{2}\right)
+\end{align*}
+ただし
+\[
+  \nu_n = \nu_0 + n,
+  \qquad
+  \sigma_n^2(\theta) = \frac{1}{\nu_n}\left[\nu_0 \sigma_0^2 + n s_n^2(\theta)\right],
+  \qquad
+  s_n^2(\theta) = \frac{1}{n}\sum_{i=1}^{n} (y_i - \theta)^2.
+\]
+\end{thmbox}
+
+\paragraph{読み方}
+$\nu_n = \nu_0 + n$ は「事前の標本サイズ $\nu_0$ ＋実際の標本サイズ $n$」であり，
+$\sigma_n^2(\theta)$ は事前の分散 $\sigma_0^2$ と
+データから計算した分散 $s_n^2(\theta)$ を\textbf{自由度で重み付けした加重平均}である：
+\[
+  \sigma_n^2(\theta) = \frac{\nu_0}{\nu_0 + n}\,\sigma_0^2
+    + \frac{n}{\nu_0 + n}\, s_n^2(\theta).
+\]
+$\theta$ の場合（6.1節）は\textbf{精度}で重み付けした加重平均だったが，
+ここでは\textbf{自由度}で重み付けした加重平均になっている．
+どちらも「事前情報とデータ情報を足し合わせる」という同じ構図である．
+
+\begin{pointbox}
+\textbf{$s_n^2(\theta)$ の分母が $n$ であって $n-1$ でないのはなぜか}
+
+通常の標本分散 $s^2 = \sum(y_i - \bar{y})^2/(n-1)$ で $n-1$ で割るのは，
+中心 $\bar{y}$ をデータから推定したぶん自由度を1つ失うからである．
+ここでは\textbf{$\theta$ を既知として条件付けている}ので，
+中心を推定する必要がなく自由度は失われない．
+だから $s_n^2(\theta) = \sum(y_i - \theta)^2/n$ が
+（$\theta$ が既知なら）$\sigma^2$ の不偏推定量になる．
+
+\medskip
+通常の標本分散との関係は，平方和を分解すると見える：
+\[
+  \sum_{i=1}^{n}(y_i - \theta)^2
+  = \underbrace{\sum_{i=1}^{n}(y_i - \bar{y})^2}_{(n-1)s^2}
+  + \underbrace{n(\bar{y} - \theta)^2}_{\theta \text{ が } \bar{y} \text{ からずれた分}}.
+\]
+つまり条件付けた $\theta$ が $\bar{y}$ から遠いほど $s_n^2(\theta)$ は大きくなり，
+$\sigma^2$ の条件付き事後分布は\textbf{大きい値のほうへ引っぱられる}．
+データのばらつきを「本当のばらつき」と「中心のずれ」の両方で説明するからである．
+\end{pointbox}
+
+% ===========================
+\section{役者がそろった}
+% ===========================
+
+これで2つの\textbf{完全条件付き分布}（full conditional distribution）
+——「その1つ以外のすべてを条件にした分布」——が手に入った：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.8}
+\begin{tabular}{lll}
+\toprule
+ & 分布 & サンプリング \\
+\midrule
+$p(\theta \mid \sigma^2, \boldsymbol{y})$
+  & $\mathrm{Normal}(\mu_n, \tau_n^2)$（6.1節）
+  & \texttt{rnorm()} で可能 \\
+$p(\sigma^2 \mid \theta, \boldsymbol{y})$
+  & $\mathrm{inverse\text{-}gamma}(\nu_n/2,\ \nu_n\sigma_n^2(\theta)/2)$（本節）
+  & \texttt{rgamma()} で可能 \\
+\midrule
+$p(\theta, \sigma^2 \mid \boldsymbol{y})$
+  & 標準的な分布ではない
+  & \textbf{直接は不可能} \\
+$p(\sigma^2 \mid \boldsymbol{y})$
+  & 標準的な分布ではない（6.1節）
+  & \textbf{直接は不可能} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent 部品は2つとも簡単に引けるのに，欲しい同時分布からは引けない．
+そこで Hoff の問いはこうなる：
+
+\begin{center}
+\textit{Can we use the full conditional distributions to sample from the joint posterior distribution?}\\
+（完全条件付き分布を使って，同時事後分布からサンプリングできないだろうか？）
+\end{center}
+
+% ===========================
+\section{連鎖のアイデア}
+% ===========================
+
+議論の土台になるのは，確率の\textbf{乗法定理}を言い換えただけの次の原理である．
+
+\begin{defbox}{サンプリングの合成（composition）}
+$X$ を周辺分布 $p(x)$ からの標本とし，
+それを条件として $Y$ を条件付き分布 $p(y \mid X)$ から引く．
+このとき，ペア $\{X, Y\}$ は\textbf{同時分布 $p(x,y)$ からの標本}である．
+\[
+  p(x, y) = p(x) \times p(y \mid x)
+\]
+そして同時分布からの標本は，片方だけ取り出せば\textbf{その周辺分布からの標本}である．
+\end{defbox}
+
+\noindent この2つの事実（合成と周辺化）を交互に適用していく．
+
+\paragraph{いま $\sigma^{2(1)}$ が手元にあると仮定する}
+すなわち，周辺事後分布 $p(\sigma^2 \mid \boldsymbol{y})$ からの標本が
+1つだけ与えられたとする．すると：
+
+\begin{enumerate}
+  \item $\theta^{(1)} \sim p(\theta \mid \sigma^{2(1)}, \boldsymbol{y})$ を引く．
+        \\
+        合成の原理より，$\{\theta^{(1)}, \sigma^{2(1)}\}$ は
+        \textbf{同時分布からの標本}である．
+
+  \item ペアが同時分布からの標本なら，片割れ $\theta^{(1)}$ は
+        \textbf{周辺分布 $p(\theta \mid \boldsymbol{y})$ からの標本}である．
+
+  \item そこで $\sigma^{2(2)} \sim p(\sigma^2 \mid \theta^{(1)}, \boldsymbol{y})$ を引く．
+        \\
+        $\theta^{(1)}$ が周辺分布からの標本で，$\sigma^{2(2)}$ がそれを条件とする
+        条件付き分布からの標本なのだから，
+        合成の原理より $\{\theta^{(1)}, \sigma^{2(2)}\}$ も
+        \textbf{同時分布からの標本}である．
+
+  \item ならば $\sigma^{2(2)}$ は
+        \textbf{周辺分布 $p(\sigma^2 \mid \boldsymbol{y})$ からの標本}である．
+        これは出発点と同じ状況なので，1に戻って繰り返せる．
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=10mm and 24mm,
+  box/.style={draw, rounded corners=2pt, minimum height=8mm, inner sep=4pt},
+  marg/.style={box, fill=green!10, draw=green!50!black},
+  arr/.style={-{Stealth[length=2.5mm]}, thick}
+]
+\node[marg] (s1) {$\sigma^{2(1)}$};
+\node[marg, right=of s1] (t1) {$\theta^{(1)}$};
+\node[marg, right=of t1] (s2) {$\sigma^{2(2)}$};
+\node[marg, right=of s2] (t2) {$\theta^{(2)}$};
+\node[right=8mm of t2] (dots) {$\cdots$};
+
+\draw[arr] (s1) -- node[above, font=\scriptsize] {$p(\theta \mid \sigma^2, \boldsymbol{y})$} (t1);
+\draw[arr] (t1) -- node[above, font=\scriptsize] {$p(\sigma^2 \mid \theta, \boldsymbol{y})$} (s2);
+\draw[arr] (s2) -- node[above, font=\scriptsize] {$p(\theta \mid \sigma^2, \boldsymbol{y})$} (t2);
+\draw[arr] (t2) -- (dots);
+
+\node[below=2mm of s1, font=\scriptsize, green!40!black] {周辺からの標本};
+\node[below=2mm of t1, font=\scriptsize, green!40!black] {周辺からの標本};
+\node[below=2mm of s2, font=\scriptsize, green!40!black] {周辺からの標本};
+\node[below=2mm of t2, font=\scriptsize, green!40!black] {周辺からの標本};
+\end{tikzpicture}
+\end{center}
+
+\noindent 一度この連鎖に乗ってしまえば，
+\textbf{完全条件付き分布を交互に使うだけで}，
+周辺分布からの標本・同時分布からの標本がいくらでも作れることになる．
+隣り合うどのペアを取っても同時事後分布からの標本である．
+
+% ===========================
+\section{残った問題：最初の1個をどうするか}
+% ===========================
+
+\begin{warningbox}
+\textbf{議論が循環している}
+
+上の議論は「$\sigma^{2(1)}$ が周辺事後分布 $p(\sigma^2 \mid \boldsymbol{y})$
+からの標本として与えられたとすれば」から始まっていた．
+ところが\textbf{その周辺分布から引けないこと}こそ，
+6.1節で判明した出発点の問題である．
+
+\medskip
+Hoff の原文も
+\textit{``if only we had a $\sigma^{2(1)}$ from which to start''}
+（出発点となる $\sigma^{2(1)}$ さえあれば）と，
+条件法のまま節を終えている．
+\end{warningbox}
+
+\begin{pointbox}
+\textbf{この議論が本当に示したこと}
+
+厳密に言えば，本節が示したのは
+「同時事後分布からスタートすれば，交互サンプリングを続けても
+\textbf{同時事後分布から外れない}」ということである．
+これは\textbf{同時事後分布がこの手続きの不動点（定常分布）である}
+という主張であって，
+\textbf{任意の出発点から同時事後分布に近づく}という主張ではない．
+
+\medskip
+後者こそが本当に必要な性質であり，
+それが成り立つ（したがって $\sigma^{2(1)}$ を適当に決めてよい）ことは，
+6.4節でアルゴリズムを定義したうえで，
+6.6節のマルコフ連鎖の理論で保証される．
+\end{pointbox}
+
+\paragraph{6.4節での解決}
+結論を先取りすると，答えは\textbf{「適当な値から始めてよい」}である．
+出発点が正しくなくても，交互サンプリングを繰り返すうちに
+分布は同時事後分布に収束する．
+この手続きを\textbf{ギブスサンプラー}と呼ぶ．
+ただし初期の数回分は出発点の影響を引きずるので，
+実務上はそれを捨てる（burn-in）ことになる．
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{6.3節のまとめ}
+\begin{enumerate}
+  \item $\theta$ を既知として条件付けると，
+        $\{\sigma^2 \mid \theta, \boldsymbol{y}\} \sim
+        \mathrm{inverse\text{-}gamma}(\nu_n/2,\ \nu_n\sigma_n^2(\theta)/2)$
+        と\textbf{標準的な分布}になる．
+        導出の鍵は，事前独立のおかげで $p(\theta \mid \tilde{\sigma}^2) = p(\theta)$
+        が定数として落ち，残りがガンマ密度のカーネルになること．
+
+  \item これで\textbf{2つの完全条件付き分布}
+        $p(\theta \mid \sigma^2, \boldsymbol{y})$（正規）と
+        $p(\sigma^2 \mid \theta, \boldsymbol{y})$（逆ガンマ）が
+        どちらも簡単にサンプリングできるようになった．
+        一方，同時分布と周辺分布からは相変わらず直接引けない．
+
+  \item \textbf{合成の原理}（$X \sim p(x)$ かつ $Y \mid X \sim p(y \mid x)$
+        ならば $\{X,Y\} \sim p(x,y)$）を交互に適用すると，
+        完全条件付き分布だけで同時分布からの標本が次々と作れる．
+
+  \item ただしこの議論は，出発点に
+        \textbf{周辺分布からの標本 $\sigma^{2(1)}$ を要求する}という循環を含む．
+        示せたのは「同時事後分布が手続きの不動点である」ことまでであり，
+        任意の出発点からの収束は6.4節・6.6節に委ねられる．
+\end{enumerate}
+\end{thmbox}
+
+\end{document}

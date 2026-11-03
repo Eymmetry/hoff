@@ -1,0 +1,468 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween}
+\usetikzlibrary{patterns}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt,
+  breakable
+}
+\newtcolorbox{derivbox}[1]{
+  colback=yellow!6, colframe=yellow!70!black,
+  fonttitle=\bfseries, title={計算補足：#1}, arc=3pt,
+  breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt,
+  breakable
+}
+
+\title{{\large Hoff 第5章} \\[6pt]
+       \textbf{5.2\; Inference for the mean, conditional on the variance} \\[4pt]
+       {\normalsize ゼミ資料（和訳＋計算補足）}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+%===========================================
+\section{問題設定と十分統計量}
+%===========================================
+
+データ $y_1, \ldots, y_n \overset{\mathrm{i.i.d.}}{\sim} \mathrm{Normal}(\theta, \sigma^2)$ が与えられているとする．
+この節では $\sigma^2$ を既知と仮定し，未知の $\theta$ に対する推論を行う．
+
+同時尤度は
+\[
+  p(y_1, \ldots, y_n \mid \theta, \sigma^2)
+  = \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}}
+    \exp\!\left\{-\frac{1}{2}\left(\frac{y_i - \theta}{\sigma}\right)^2\right\}
+  \propto \exp\!\left\{-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i - \theta)^2\right\}.
+\]
+
+指数部分の和を展開すると，
+\[
+  \sum_{i=1}^n \left(\frac{y_i - \theta}{\sigma}\right)^2
+  = \frac{1}{\sigma^2}\sum y_i^2 - \frac{2\theta}{\sigma^2}\sum y_i + \frac{n\theta^2}{\sigma^2}.
+\]
+
+これより，尤度は $\sum y_i^2$ と $\sum y_i$（あるいは同値として $\bar{y}$ と $s^2$）にのみ依存することがわかる．
+すなわち $\{\bar{y}, s^2\}$ は $(\theta, \sigma^2)$ の\textbf{十分統計量}である．
+
+\begin{derivbox}{十分統計量の等価性：$\sum(y_i-\theta)^2$ の分解}
+次の恒等式が成り立つ：
+\[
+  \sum_{i=1}^n (y_i - \theta)^2 = (n-1)s^2 + n(\bar{y} - \theta)^2.
+\]
+
+\noindent\textbf{証明：} $y_i - \theta = (y_i - \bar{y}) + (\bar{y} - \theta)$ と分解して二乗すると，
+\begin{align*}
+  \sum(y_i - \theta)^2
+  &= \sum\bigl[(y_i - \bar{y}) + (\bar{y} - \theta)\bigr]^2 \\
+  &= \sum(y_i - \bar{y})^2
+     + 2(\bar{y} - \theta)\underbrace{\sum(y_i - \bar{y})}_{=\,0}
+     + n(\bar{y} - \theta)^2 \\
+  &= (n-1)s^2 + n(\bar{y} - \theta)^2. \hspace{5cm}\square
+\end{align*}
+
+この分解により，尤度は $\bar{y}$ と $s^2$ だけを通じて $\theta$ に依存することが明確になる：
+\[
+  p(\mathbf{y} \mid \theta, \sigma^2)
+  \propto \exp\!\left\{-\frac{n}{2\sigma^2}(\bar{y} - \theta)^2\right\}
+  \cdot \exp\!\left\{-\frac{(n-1)s^2}{2\sigma^2}\right\}.
+\]
+第2因子は $\theta$ に依存しないので定数扱いでき，$\theta$ に関する推論には $\bar{y}$ だけが必要．
+\end{derivbox}
+
+
+%===========================================
+\section{共役事前分布の特定}
+%===========================================
+
+ベイズの定理より，事後分布は
+\[
+  p(\theta \mid \sigma^2, \mathbf{y})
+  \propto p(\theta \mid \sigma^2) \times e^{-\frac{1}{2\sigma^2}\sum(y_i - \theta)^2}
+  \propto p(\theta \mid \sigma^2) \times e^{c_1(\theta - c_2)^2}
+\]
+の形を持つ．事後分布が事前分布と同じクラスに属する（共役性）ためには，
+事前分布 $p(\theta \mid \sigma^2)$ も $e^{c_1'(\theta-c_2')^2}$ の形，
+すなわち\textbf{正規分布}でなければならない．
+
+そこで，$\sigma^2$ を所与とした $\theta$ の条件付き事前分布を
+\[
+  \theta \mid \sigma^2 \sim \mathrm{Normal}(\mu_0, \tau_0^2)
+\]
+と設定する．$\tau_0^2$ は $\theta$ に対する事前の不確かさの大きさを表す．
+
+\begin{pointbox}
+$\tau_0^2 = \sigma^2/\kappa_0$ と設定すると，$\kappa_0$ を「事前の仮想的な観測数」と解釈できる．
+$\kappa_0 = 1$ は「1人分の観測と同程度の事前情報」を意味する．
+\end{pointbox}
+
+
+%===========================================
+\section{事後分布の導出}
+%===========================================
+
+\subsection{指数部分のまとめ}
+
+$\theta \sim \mathrm{Normal}(\mu_0, \tau_0^2)$ を事前分布とすると，
+
+\begin{align*}
+  p(\theta \mid \sigma^2, \mathbf{y})
+  &\propto p(\theta \mid \sigma^2)\, p(\mathbf{y} \mid \theta, \sigma^2) \\
+  &\propto \exp\!\left\{-\frac{(\theta - \mu_0)^2}{2\tau_0^2}\right\}
+           \cdot \exp\!\left\{-\frac{1}{2\sigma^2}\sum_{i=1}^n (y_i - \theta)^2\right\}.
+\end{align*}
+
+指数部分の $-1/2$ を除いた部分をまとめる：
+\begin{align*}
+  &\frac{\theta^2 - 2\theta\mu_0 + \mu_0^2}{\tau_0^2}
+   + \frac{\sum y_i^2 - 2\theta\sum y_i + n\theta^2}{\sigma^2} \\
+  &= \left(\frac{1}{\tau_0^2} + \frac{n}{\sigma^2}\right)\theta^2
+     - 2\left(\frac{\mu_0}{\tau_0^2} + \frac{\sum y_i}{\sigma^2}\right)\theta
+     + \underbrace{\frac{\mu_0^2}{\tau_0^2} + \frac{\sum y_i^2}{\sigma^2}}_{\text{$\theta$ に無関係（定数）}} \\
+  &= a\theta^2 - 2b\theta + c,
+\end{align*}
+
+ここで
+\[
+  a = \frac{1}{\tau_0^2} + \frac{n}{\sigma^2}, \qquad
+  b = \frac{\mu_0}{\tau_0^2} + \frac{\sum y_i}{\sigma^2} = \frac{\mu_0}{\tau_0^2} + \frac{n\bar{y}}{\sigma^2}, \qquad
+  c = c(\mu_0, \tau_0^2, \sigma^2, \mathbf{y}).
+\]
+
+\subsection{平方完成}
+
+\begin{derivbox}{$a\theta^2 - 2b\theta$ の平方完成}
+$a$ でくくって平方完成する：
+\begin{align*}
+  a\theta^2 - 2b\theta
+  &= a\!\left(\theta^2 - \frac{2b}{a}\theta\right) \\
+  &= a\!\left(\theta^2 - \frac{2b}{a}\theta + \frac{b^2}{a^2} - \frac{b^2}{a^2}\right) \\
+  &= a\!\left(\theta - \frac{b}{a}\right)^2 - \frac{b^2}{a}.
+\end{align*}
+
+したがって，$\theta$ に依存する部分だけを残すと：
+\[
+  a\theta^2 - 2b\theta + c = a\!\left(\theta - \frac{b}{a}\right)^2 + \underbrace{\left(c - \frac{b^2}{a}\right)}_{\text{定数}}.
+\]
+\end{derivbox}
+
+よって事後分布は，
+\begin{align*}
+  p(\theta \mid \sigma^2, \mathbf{y})
+  &\propto \exp\!\left\{-\frac{1}{2}\bigl(a\theta^2 - 2b\theta\bigr)\right\} \\
+  &\propto \exp\!\left\{-\frac{a}{2}\left(\theta - \frac{b}{a}\right)^2\right\} \\
+  &= \exp\!\left\{-\frac{1}{2}\left(\frac{\theta - b/a}{1/\sqrt{a}}\right)^2\right\}.
+\end{align*}
+
+これは平均 $b/a$，標準偏差 $1/\sqrt{a}$（分散 $1/a$）の正規分布の密度に比例する．
+
+\begin{thmbox}{事後分布（$\sigma^2$ 既知）}
+\[
+  \theta \mid \sigma^2, y_1, \ldots, y_n
+  \;\sim\; \mathrm{Normal}(\mu_n, \tau_n^2),
+\]
+ただし
+\[
+  \tau_n^2 = \frac{1}{a} = \frac{1}{\dfrac{1}{\tau_0^2} + \dfrac{n}{\sigma^2}},
+  \qquad
+  \mu_n = \frac{b}{a} = \frac{\dfrac{\mu_0}{\tau_0^2} + \dfrac{n\bar{y}}{\sigma^2}}{\dfrac{1}{\tau_0^2} + \dfrac{n}{\sigma^2}}.
+\]
+\end{thmbox}
+
+
+%===========================================
+\section{事後パラメータの解釈}
+%===========================================
+
+\subsection{精度の加法性}
+
+\begin{derivbox}{精度（precision）とは}
+分散の逆数 $1/\sigma^2$ を\textbf{精度（precision）}と呼ぶ．精度が高い $=$ 不確かさが小さい．
+
+正規モデルでは，精度を「情報量」として加法的に扱える：
+\[
+  \underbrace{\frac{1}{\tau_n^2}}_{\text{事後精度}}
+  = \underbrace{\frac{1}{\tau_0^2}}_{\text{事前精度}}
+  + \underbrace{\frac{n}{\sigma^2}}_{\text{データの精度}}.
+\]
+
+各項の意味：
+\begin{itemize}
+  \item $1/\tau_0^2$：事前分布が持つ情報量（事前精度）
+  \item $n/\sigma^2$：$n$ 個の観測値が持つ情報量．$n/\sigma^2 = n \cdot (1/\sigma^2)$，つまり「1観測あたりの精度 $\times$ 観測数」
+  \item 事後精度 $=$ 事前精度 $+$ データ精度（情報量は足し算できる）
+\end{itemize}
+
+$\tilde{\sigma}^2 = 1/\sigma^2$（標本精度），$\tilde{\tau}_0^2 = 1/\tau_0^2$（事前精度），$\tilde{\tau}_n^2 = 1/\tau_n^2$（事後精度）と書けば，
+\[
+  \tilde{\tau}_n^2 = \tilde{\tau}_0^2 + n\tilde{\sigma}^2.
+\]
+\end{derivbox}
+
+\subsection{事後平均は加重平均}
+
+事後平均 $\mu_n$ を整理すると，次のように書ける：
+
+\begin{derivbox}{$\mu_n$ の加重平均表示}
+分子・分母をそれぞれ精度 $1/\tau_0^2 + n/\sigma^2 = 1/\tau_n^2$ で割ると，
+\begin{align*}
+  \mu_n
+  &= \frac{\dfrac{1}{\tau_0^2} \cdot \mu_0 + \dfrac{n}{\sigma^2} \cdot \bar{y}}
+         {\dfrac{1}{\tau_0^2} + \dfrac{n}{\sigma^2}} \\[6pt]
+  &= \frac{\dfrac{1}{\tau_0^2}}{\dfrac{1}{\tau_n^2}} \cdot \mu_0
+   + \frac{\dfrac{n}{\sigma^2}}{\dfrac{1}{\tau_n^2}} \cdot \bar{y} \\[6pt]
+  &= \underbrace{\tau_n^2 \cdot \frac{1}{\tau_0^2}}_{\text{事前の重み}} \cdot \mu_0
+   + \underbrace{\tau_n^2 \cdot \frac{n}{\sigma^2}}_{\text{データの重み}} \cdot \bar{y}.
+\end{align*}
+
+\noindent 事前と標本それぞれの\textbf{精度}に比例した重みで加重平均している：
+\begin{itemize}
+  \item $n$ が大きい（データが多い）ほど $\bar{y}$ の重みが大きくなる
+  \item $\tau_0^2$ が小さい（事前の確信が強い）ほど $\mu_0$ の重みが大きくなる
+  \item $n \to \infty$ のとき $\mu_n \to \bar{y}$（データが支配）
+\end{itemize}
+\end{derivbox}
+
+\subsection{$\tau_0^2 = \sigma^2/\kappa_0$ と設定した場合}
+
+$\tau_0^2 = \sigma^2/\kappa_0$ と置くと，$1/\tau_0^2 = \kappa_0/\sigma^2$ となる．代入すると：
+
+\begin{align*}
+  \mu_n
+  &= \frac{\kappa_0/\sigma^2 \cdot \mu_0 + n/\sigma^2 \cdot \bar{y}}
+         {\kappa_0/\sigma^2 + n/\sigma^2}
+   = \frac{\kappa_0 \mu_0 + n\bar{y}}{\kappa_0 + n}, \\[6pt]
+  \tau_n^2
+  &= \frac{1}{\kappa_0/\sigma^2 + n/\sigma^2}
+   = \frac{\sigma^2}{\kappa_0 + n}.
+\end{align*}
+
+$\mu_n$ は $\mu_0$（事前 $\kappa_0$ 個分の観測）と $\bar{y}$（実際の $n$ 個の観測）の単純な加重平均：
+\[
+  \mu_n = \frac{\kappa_0}{\kappa_0 + n}\mu_0 + \frac{n}{\kappa_0 + n}\bar{y}.
+\]
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+$\kappa_0$ & 事前の重み $\kappa_0/(\kappa_0+n)$ & データの重み $n/(\kappa_0+n)$ \\
+\midrule
+$1$ & $1/(1+n)$ & $n/(1+n)$ \\
+$n$ & $1/2$ & $1/2$ \\
+$\infty$ & $1$ & $0$（事前に完全に支配） \\
+$0$ & $0$ & $1$（データのみ） \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+%===========================================
+\section{予測分布}
+%===========================================
+
+データ $\mathbf{y} = (y_1, \ldots, y_n)$ を観測したあとで，
+同じ母集団から新しい観測値 $\tilde{Y}$ を予測したい．
+
+$\tilde{Y} \mid \theta, \sigma^2 \sim \mathrm{Normal}(\theta, \sigma^2)$ であることは，
+次のように言い換えられる：
+\[
+  \tilde{Y} = \theta + \tilde{\epsilon}, \qquad
+  \tilde{\epsilon} \mid \sigma^2 \sim \mathrm{Normal}(0, \sigma^2),
+  \quad \tilde{\epsilon} \perp \theta \mid \mathbf{y}, \sigma^2.
+\]
+
+\begin{derivbox}{予測分布の平均と分散}
+$\sigma^2$ を所与として，$\tilde{Y}$ の条件付き期待値と分散を計算する．
+
+\medskip
+\noindent\textbf{期待値：}
+\begin{align*}
+  \mathrm{E}[\tilde{Y} \mid \mathbf{y}, \sigma^2]
+  &= \mathrm{E}[\theta + \tilde{\epsilon} \mid \mathbf{y}, \sigma^2] \\
+  &= \mathrm{E}[\theta \mid \mathbf{y}, \sigma^2] + \mathrm{E}[\tilde{\epsilon} \mid \mathbf{y}, \sigma^2] \\
+  &= \mu_n + 0 = \mu_n.
+\end{align*}
+
+\noindent\textbf{分散：}
+$\theta \mid \mathbf{y}, \sigma^2$ と $\tilde{\epsilon}$ は独立なので，
+\begin{align*}
+  \mathrm{Var}[\tilde{Y} \mid \mathbf{y}, \sigma^2]
+  &= \mathrm{Var}[\theta + \tilde{\epsilon} \mid \mathbf{y}, \sigma^2] \\
+  &= \mathrm{Var}[\theta \mid \mathbf{y}, \sigma^2] + \mathrm{Var}[\tilde{\epsilon} \mid \mathbf{y}, \sigma^2] \\
+  &= \tau_n^2 + \sigma^2.
+\end{align*}
+
+分散が $\tau_n^2 + \sigma^2$ となる直感：
+\begin{itemize}
+  \item $\tau_n^2$：$\theta$ がどこにあるかの不確かさ（推定誤差）
+  \item $\sigma^2$：たとえ $\theta$ が完全にわかっても，新しい観測値は $\theta$ からばらつく（標本変動）
+  \item $n \to \infty$ としても $\tau_n^2 \to 0$ だが $\sigma^2 > 0$ は消えない：
+        母集団の分散は無限のデータでも消せない
+\end{itemize}
+\end{derivbox}
+
+$\theta \mid \mathbf{y}, \sigma^2 \sim \mathrm{Normal}(\mu_n, \tau_n^2)$ と $\tilde{\epsilon} \sim \mathrm{Normal}(0, \sigma^2)$ の独立な和は正規分布に従う（性質3）ので，
+
+\begin{thmbox}{予測分布}
+\[
+  \tilde{Y} \mid \sigma^2, y_1, \ldots, y_n
+  \;\sim\; \mathrm{Normal}(\mu_n,\; \tau_n^2 + \sigma^2).
+\]
+\end{thmbox}
+
+
+%===========================================
+\section{例：ユスリカ（Midge）の翅長データ}
+%===========================================
+
+\begin{exbox}{Grogan \& Wirth (1981) のデータ}
+あるユスリカ（小型の2翅目昆虫）の1種 $n=9$ 個体の翅長（mm）が得られた：
+
+\[
+  y = (1.64,\; 1.70,\; 1.72,\; 1.74,\; 1.82,\; 1.82,\; 1.82,\; 1.90,\; 2.08).
+\]
+
+他の集団の研究から翅長は典型的に 1.9 mm 程度とわかっているため $\mu_0 = 1.9$ と設定する．
+また $\theta > 0$ を満たすよう，事前平均から $2\tau_0$ の範囲が正の領域に収まるよう
+$\mu_0 - 2\tau_0 > 0$，すなわち $\tau_0 < 1.9/2 = 0.95$ を要求し，$\tau_0 = 0.95$ とする（やや甘め）．
+\end{exbox}
+
+\subsection{事後分布の計算（$\sigma^2 = s^2$ と仮定）}
+
+まず標本統計量を求める：
+\begin{align*}
+  \bar{y} &= \frac{1}{9}(1.64 + 1.70 + 1.72 + 1.74 + 1.82 + 1.82 + 1.82 + 1.90 + 2.08) \\
+          &= \frac{16.24}{9} = 1.804, \\[6pt]
+  s^2 &= \frac{1}{n-1}\sum_{i=1}^n (y_i - \bar{y})^2 = 0.017.
+\end{align*}
+
+事前パラメータ $\tau_0 = 0.95$（$\tau_0^2 = 0.9025$），$\mu_0 = 1.9$，$\sigma^2 = s^2 = 0.017$ を代入する：
+
+\begin{derivbox}{事後平均と事後分散の数値計算}
+まず各精度を計算する：
+\[
+  \frac{1}{\tau_0^2} = \frac{1}{0.9025} \approx 1.108, \qquad
+  \frac{n}{\sigma^2} = \frac{9}{0.017} \approx 529.4.
+\]
+
+事後精度（両者の和）：
+\[
+  \frac{1}{\tau_n^2} = 1.108 + 529.4 = 530.5 \qquad \Rightarrow \qquad \tau_n^2 \approx 0.00189.
+\]
+
+事後平均：
+\[
+  \mu_n
+  = \frac{1.108 \times 1.9 + 529.4 \times 1.804}{1.108 + 529.4}
+  = \frac{2.105 + 955.0}{530.5}
+  \approx 1.805.
+\]
+
+\noindent\textbf{注：} 事前精度 $1/\tau_0^2 \approx 1.1$ はデータ精度 $529.4$ に対して非常に小さい．
+そのため事後平均はほぼ $\bar{y} = 1.804$ に一致する（事前情報がデータに飲み込まれている）．
+
+\medskip
+95\% 信用区間（credible interval）：
+\[
+  \mu_n \pm 1.96\tau_n
+  = 1.805 \pm 1.96 \times \sqrt{0.002}
+  = 1.805 \pm 1.96 \times 0.0447
+  \approx (1.72,\; 1.89).
+\]
+\end{derivbox}
+
+以上より，$\{\theta \mid y_1, \ldots, y_9, \sigma^2 = 0.017\} \sim \mathrm{Normal}(1.805, 0.002)$．
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=6cm,
+  domain=0.5:3, samples=400,
+  xmin=0.5, xmax=3, ymin=0, ymax=9,
+  xlabel={$\theta$（翅長の母平均，mm）},
+  ylabel={密度},
+  legend pos=north east,
+  every axis/.append style={font=\small},
+]
+% Prior: Normal(1.9, 0.9025)
+\addplot[blue, thick, dashed]
+  {1/(0.95*sqrt(2*pi))*exp(-((x-1.9)^2)/(2*0.9025))};
+\addlegendentry{事前分布 $\mathrm{Normal}(1.9,\; 0.95^2)$}
+% Posterior: Normal(1.805, 0.00189)
+\addplot[red, thick]
+  {1/(0.0435*sqrt(2*pi))*exp(-((x-1.805)^2)/(2*0.00189))};
+\addlegendentry{事後分布 $\mathrm{Normal}(1.805,\; 0.002)$（$\sigma^2=0.017$ 条件付き）}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\noindent 事後分布が事前分布に比べて非常に鋭くなっている：
+データが $n=9$ 個でも，精度の観点ではデータが事前情報を 500 倍近く上回るためである．
+
+\medskip
+\noindent\textbf{注意：} この区間は $\sigma^2 = s^2$ を\textbf{既知}と仮定している．
+実際には $s^2$ は $\sigma^2$ の推定量にすぎず，$n=9$ では不確かさが大きい．
+$\sigma^2$ が未知の場合の推論は次節（5.3節）で扱う．
+
+
+%===========================================
+\section{まとめ}
+%===========================================
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{項目} & \textbf{内容} \\
+\midrule
+共役事前分布 &
+  $\theta \mid \sigma^2 \sim \mathrm{Normal}(\mu_0, \tau_0^2)$ \\
+事後分布 &
+  $\theta \mid \sigma^2, \mathbf{y} \sim \mathrm{Normal}(\mu_n, \tau_n^2)$ \\
+事後精度 &
+  $1/\tau_n^2 = 1/\tau_0^2 + n/\sigma^2$（精度の加法性） \\
+事後平均 &
+  $\mu_n$：事前平均 $\mu_0$ と標本平均 $\bar{y}$ の精度加重平均 \\
+$\tau_0^2 = \sigma^2/\kappa_0$ のとき &
+  $\mu_n = \dfrac{\kappa_0 \mu_0 + n\bar{y}}{\kappa_0 + n}$，
+  $\tau_n^2 = \dfrac{\sigma^2}{\kappa_0 + n}$ \\
+予測分布 &
+  $\tilde{Y} \mid \sigma^2, \mathbf{y} \sim \mathrm{Normal}(\mu_n, \tau_n^2 + \sigma^2)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\bigskip
+\begin{pointbox}
+この節では $\sigma^2$ を既知と仮定した．
+事後平均は「精度（情報量）に比例した重みで事前情報とデータを混ぜる」という直感的な形をしている．
+\end{pointbox}
+
+\end{document}

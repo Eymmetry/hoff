@@ -1,0 +1,342 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+\newtcolorbox{warningbox}{
+  colback=red!5, colframe=red!60!black,
+  fonttitle=\bfseries, title={注意}, arc=3pt, breakable
+}
+
+\title{{\large Hoff 第6章} \\[6pt]
+       \textbf{6.5\; General Properties of the Gibbs Sampler} \\[4pt]
+       {\normalsize （ギブスサンプラーの一般的性質）ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この節の位置づけ}
+% ===========================
+
+6.4節では，2パラメータの具体例でギブスサンプラーを走らせ，
+結果が離散近似とほぼ一致することを見た．
+しかしそれは\textbf{1つの例でうまくいった}というだけで，
+
+\begin{itemize}
+  \item なぜ適当な出発点から始めてよいのか
+  \item パラメータが2個でなく $p$ 個でも同じことが言えるのか
+  \item そもそも何が保証されているのか
+\end{itemize}
+
+\noindent には答えていない．本節はその整理にあてられる．
+
+\medskip
+内容は大きく2つに分かれる：
+\textbf{(1) 一般形と収束の主張}，
+\textbf{(2) 「推定」と「近似」を区別せよという概念的な注意}．
+後半は数式こそ出てこないが，第7章以降をずっと支える考え方である．
+
+% ===========================
+\section{一般の $p$ パラメータへの拡張}
+% ===========================
+
+パラメータベクトルを $\phi = \{\phi_1, \ldots, \phi_p\}$ とし，
+関心のある確率分布を $p(\phi) = p(\phi_1, \ldots, \phi_p)$ とする．
+正規モデルなら $\phi = \{\theta, \sigma^2\}$，
+$p(\phi)$ は事後分布 $p(\theta, \sigma^2 \mid y_1, \ldots, y_n)$ である．
+
+\begin{defbox}{ギブスサンプラー（一般形）}
+出発点 $\phi^{(0)} = \{\phi_1^{(0)}, \ldots, \phi_p^{(0)}\}$ を与え，
+$\phi^{(s-1)}$ から $\phi^{(s)}$ を次のように生成する：
+\begin{align*}
+  &1.\quad \phi_1^{(s)} \sim p\!\left(\phi_1 \mid \phi_2^{(s-1)}, \phi_3^{(s-1)}, \ldots, \phi_p^{(s-1)}\right) \\
+  &2.\quad \phi_2^{(s)} \sim p\!\left(\phi_2 \mid \phi_1^{(s)}, \phi_3^{(s-1)}, \ldots, \phi_p^{(s-1)}\right) \\
+  &\qquad \vdots \\
+  &p.\quad \phi_p^{(s)} \sim p\!\left(\phi_p \mid \phi_1^{(s)}, \phi_2^{(s)}, \ldots, \phi_{p-1}^{(s)}\right)
+\end{align*}
+\end{defbox}
+
+\begin{pointbox}
+\textbf{条件の中身が途中で入れ替わっていく}
+
+$j$ 番目を引くときに条件とするのは，
+\textbf{すでに更新済みの $\phi_1, \ldots, \phi_{j-1}$ は新しい値 $(s)$}，
+\textbf{まだ更新していない $\phi_{j+1}, \ldots, \phi_p$ は古い値 $(s-1)$} である．
+
+\medskip
+1ステップ進むごとに「新しい値」の領域が左から右へ1つずつ伸びていき，
+$p$ 番目まで終わると全部が新しい値になって $\phi^{(s)}$ が完成する．
+2パラメータの場合（6.4節）に
+$\sigma^2$ の更新で $\theta^{(s)}$（新しいほう）を使ったのと同じ規則である．
+\end{pointbox}
+
+% ===========================
+\section{マルコフ連鎖であること}
+% ===========================
+
+この手続きが生成するのは，ベクトルの従属列である：
+\[
+  \phi^{(1)} = \{\phi_1^{(1)}, \ldots, \phi_p^{(1)}\}, \quad
+  \phi^{(2)} = \{\phi_1^{(2)}, \ldots, \phi_p^{(2)}\}, \quad
+  \ldots, \quad
+  \phi^{(S)} = \{\phi_1^{(S)}, \ldots, \phi_p^{(S)}\}.
+\]
+
+\begin{defbox}{マルコフ性とマルコフ連鎖}
+この列において，$\phi^{(s)}$ が
+$\phi^{(0)}, \ldots, \phi^{(s-1)}$ に依存するのは
+\textbf{$\phi^{(s-1)}$ を通じてのみ}である．
+言い換えれば，$\phi^{(s-1)}$ を与えたとき
+$\phi^{(s)}$ は $\phi^{(0)}, \ldots, \phi^{(s-2)}$ と条件付き独立である．
+
+\medskip
+この性質を\textbf{マルコフ性}（Markov property）といい，
+これを持つ列を\textbf{マルコフ連鎖}（Markov chain）と呼ぶ．
+\end{defbox}
+
+\begin{pointbox}
+\textbf{なぜマルコフ性が成り立つのか}
+
+アルゴリズムを見れば明らかである：
+$\phi^{(s)}$ を作るのに使う情報は，
+$\phi^{(s-1)}$ の成分とデータだけであって，
+それより前の履歴はどこにも現れない．
+
+\medskip
+これは「記憶がない」ということであり，
+実装上は\textbf{直前の状態だけ保持すればよい}ことを意味する
+（6.4節の R コードが \texttt{phi} という長さ2のベクトル1本を
+使い回していたのはこのためである）．
+\end{pointbox}
+
+% ===========================
+\section{収束についての2つの主張}
+% ===========================
+
+Hoff は「本書で扱うすべてのモデルで満たされるいくつかの条件のもとで」
+と前置きしたうえで，次の2つを述べる．
+
+\begin{thmbox}{主張1：分布の収束}
+パラメータ空間の任意の集合 $A$ について
+\[
+  \Pr(\phi^{(s)} \in A) \;\longrightarrow\; \int_A p(\phi)\, d\phi
+  \qquad (s \to \infty).
+\]
+すなわち，$\phi^{(s)}$ の\textbf{標本分布は目標分布に近づく}．
+\textbf{出発点 $\phi^{(0)}$ が何であってもよい}
+（ただし出発点によって，目標に達するまでの速さは違う）．
+\end{thmbox}
+
+\begin{thmbox}{主張2：平均の収束（式 6.1）}
+関心のあるたいていの関数 $g$ について
+\[
+  \frac{1}{S}\sum_{s=1}^{S} g(\phi^{(s)})
+  \;\longrightarrow\;
+  E[g(\phi)] = \int g(\phi)\, p(\phi)\, d\phi
+  \qquad (S \to \infty).
+\]
+\end{thmbox}
+
+\begin{pointbox}
+\textbf{6.3節の宿題が片づいた}
+
+6.3節で示せたのは「同時事後分布から始めれば，そこから外れない」
+（不動点であること）までだった．
+\textbf{主張1はそれより強く，どこから始めても目標に近づく}と言っている．
+これがあってはじめて，6.4節の「出発点は適当でよい」が正当化される．
+\end{pointbox}
+
+\begin{warningbox}
+\textbf{「いくつかの条件」の中身は書かれていない}
+
+Hoff は \textit{``Under some conditions that will be met for all of the
+models discussed in this text''} と述べるだけで，条件を明示していない．
+
+\medskip
+教科書の範囲を出るが，大まかには
+\textbf{連鎖がパラメータ空間のどこへでも到達できること}（既約性）と，
+\textbf{周期的な振動に陥らないこと}（非周期性）が要る．
+たとえば完全条件付き分布の台が分断されていて
+連鎖が片側から出られないような場合には，主張1は成り立たない．
+
+\medskip
+なお，条件が満たされていても\textbf{収束が実用的な時間内に起きるとは限らない}．
+$s \to \infty$ の「$\infty$」がどれほど遠いかは別問題であり，
+それが6.6節の主題になる．
+\end{warningbox}
+
+\paragraph{MCMC という名前}
+主張2は「標本平均で期待値を近似してよい」と言っており，
+これは第4章の\textbf{モンテカルロ近似とまったく同じ使い方}である．
+違いは，標本が独立ではなく\textbf{マルコフ連鎖}として生成される点だけ．
+そこでこの種の近似を
+\textbf{マルコフ連鎖モンテカルロ（Markov chain Monte Carlo, MCMC）近似}，
+手続きを\textbf{MCMCアルゴリズム}と呼ぶ．
+
+\begin{exbox}{ユスリカデータへの適用}
+6.4節の1000個のギブス標本について，式(6.1)は
+$\{(\theta^{(1)}, \sigma^{2(1)}), \ldots, (\theta^{(1000)}, \sigma^{2(1000)})\}$
+の同時分布が $p(\theta, \sigma^2 \mid y_1, \ldots, y_n)$ に近いことを意味し，
+\begin{align*}
+  E[\theta \mid y_1, \ldots, y_n]
+    &\;\approx\; \frac{1}{1000}\sum_{s=1}^{1000} \theta^{(s)} = 1.804, \\[4pt]
+  \Pr\!\left(\theta \in [1.71,\ 1.90] \mid y_1, \ldots, y_n\right) &\approx 0.95.
+\end{align*}
+\end{exbox}
+
+% ===========================
+\section{「推定」と「近似」を区別する}
+% ===========================
+
+ここからは数式のない，しかし重要な話である．
+
+\medskip
+ベイズのデータ解析をモンテカルロ法で行っていると，
+サンプリング手続きと確率分布が入り乱れて混乱しやすい．
+そこで，解析のうち\textbf{統計的な部分}と
+\textbf{数値的な近似の部分}を分けて考えることが助けになる．
+
+\begin{thmbox}{ベイズのデータ解析の3要素（第1章）}
+\begin{enumerate}
+  \item \textbf{モデルの指定}：データの標本分布を表すと考えられる
+        確率分布の族 $\{p(y \mid \phi),\ \phi \in \Phi\}$
+
+  \item \textbf{事前分布の指定}：どのパラメータ値がもっともらしいかについての
+        事前情報を表す確率分布 $p(\phi)$
+
+  \item \textbf{事後分布の要約}：事後分布 $p(\phi \mid y)$ を，
+        事後平均・中央値・最頻値・予測確率・信用域といった
+        関心のある量で記述すること
+\end{enumerate}
+\end{thmbox}
+
+\noindent 1と2を決め，データを集めた時点で，事後分布は
+\[
+  p(\phi \mid y) = \frac{p(\phi)\,p(y \mid \phi)}{p(y)}
+  = \frac{p(\phi)\,p(y \mid \phi)}{\int p(\phi)\,p(y \mid \phi)\, d\phi}
+\]
+として\textbf{完全に決まってしまう}．
+ある意味で，そこから先にモデリングも推定も残っていない．
+残っているのは3の「要約」だけである．
+
+\medskip
+ところが多くのモデルで $p(\phi \mid y)$ は複雑で書き下すのも難しい．
+そこで，$p(\phi \mid y)$ を「\textbf{眺める}」ための便利な方法として
+そこからのモンテカルロ標本を調べる．
+
+\begin{warningbox}
+\textbf{モンテカルロ法・MCMC法は何でないか}
+
+\begin{itemize}
+  \item \textbf{モデルではない}
+  \item $y$ と $p(\phi)$ に含まれる以上の
+        \textbf{「情報」を生み出しはしない}
+  \item 単に $p(\phi \mid y)$ を\textbf{「眺める方法」にすぎない}
+\end{itemize}
+
+\medskip
+たとえば $\phi^{(1)}, \ldots, \phi^{(S)}$ が $p(\phi \mid y)$ からの
+近似的な標本であるとき，これらは事後分布を記述するのに役立つ：
+\begin{align*}
+  \frac{1}{S}\sum_s \phi^{(s)} &\approx \int \phi\, p(\phi \mid y)\, d\phi, \\[4pt]
+  \frac{1}{S}\sum_s \mathbf{1}(\phi^{(s)} \le c)
+    &\approx \Pr(\phi \le c \mid y) = \int_{-\infty}^{c} p(\phi \mid y)\, d\phi.
+\end{align*}
+\end{warningbox}
+
+\begin{defbox}{用語の使い分け}
+この区別を忘れないために，次のように語を使い分けるとよい：
+\begin{itemize}
+  \item \textbf{推定}（estimation）：
+        $p(\phi \mid y)$ を使って $\phi$ について推論すること
+  \item \textbf{近似}（approximation）：
+        モンテカルロ的な手続きで積分を近似すること
+\end{itemize}
+\end{defbox}
+
+\begin{pointbox}
+\textbf{なぜこの区別が大事か}
+
+標本サイズ $S$ を増やして改善されるのは\textbf{近似}のほうだけである．
+$S$ を 1000 から 100{,}000 にすれば事後平均の数値は精密になるが，
+\textbf{事後分布そのものは1ミリも変わらない}．
+$p(\phi \mid y)$ はデータと事前分布だけで決まっているからである．
+
+\medskip
+逆に，事後分布に不満があるなら（たとえば区間が広すぎるなら），
+直すべきなのはモデルか事前分布かデータであって，
+MCMCの反復回数ではない．
+
+\medskip
+また6.6節で出てくる\textbf{MCMC標準誤差}は，
+「$\phi$ がどれだけ不確実か」ではなく
+「\textbf{われわれの数値計算がどれだけ雑か}」を測る量である．
+事後標準偏差とMCMC標準誤差を混同しないこと．
+\end{pointbox}
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{6.5節のまとめ}
+\begin{enumerate}
+  \item ギブスサンプラーは $p$ 個のパラメータに自然に拡張される．
+        $j$ 番目を引くときは，更新済みの成分には新しい値を，
+        未更新の成分には古い値を使う．
+
+  \item 生成される列は\textbf{マルコフ連鎖}である
+        （$\phi^{(s)}$ は $\phi^{(s-1)}$ を通じてのみ過去に依存する）．
+
+  \item ある条件のもとで，
+        \textbf{出発点によらず}標本分布は目標分布に収束し（主張1），
+        標本平均は期待値に収束する（主張2，式6.1）．
+        これで6.3節の循環が正式に解消される．
+        この種の近似を\textbf{MCMC近似}と呼ぶ．
+
+  \item モンテカルロ法とMCMC法は\textbf{モデルでも情報源でもなく}，
+        すでに決まっている事後分布を「眺める方法」にすぎない．
+        $p(\phi\mid y)$ による推論を\textbf{推定}，
+        積分の数値計算を\textbf{近似}と呼び分けて区別する．
+\end{enumerate}
+\end{thmbox}
+
+\paragraph{次節へ}
+本節の主張1・2はいずれも $s \to \infty$，$S \to \infty$ の話である．
+現実には有限回しか回せない．
+
+\medskip
+\textbf{有限の $S$ で，その近似はどれくらい信用できるのか？}
+\textbf{収束したかどうかをどう判断するのか？}
+——これが6.6節の問題である．
+
+\end{document}

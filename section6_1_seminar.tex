@@ -1,0 +1,269 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+\newtcolorbox{warningbox}{
+  colback=red!5, colframe=red!60!black,
+  fonttitle=\bfseries, title={注意}, arc=3pt, breakable
+}
+
+\title{{\large Hoff 第6章} \\[6pt]
+       \textbf{6.1\; A Semiconjugate Prior Distribution} \\[4pt]
+       {\normalsize （半共役事前分布）ゼミ資料}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この節のモチベーション：共役事前分布の制約}
+% ===========================
+
+第5章では，$\theta$ と $\sigma^2$ の\textbf{共役}（conjugate）事前分布として
+
+\[
+  \theta \mid \sigma^2 \sim \mathrm{Normal}\!\left(\mu_0,\, \frac{\sigma^2}{\kappa_0}\right),
+  \qquad
+  \frac{1}{\sigma^2} \sim \mathrm{Gamma}\!\left(\frac{\nu_0}{2},\, \frac{\nu_0 \sigma_0^2}{2}\right)
+\]
+
+を用いた．$\theta$ の事前分散が $\sigma^2/\kappa_0$，
+すなわち\textbf{標本の分散に比例する}という構造を持つ．
+
+\medskip
+この設定には次の\textbf{望ましくない性質}がある：
+
+\begin{itemize}
+  \item $\sigma^2$ が小さいことが分かっているとき，
+        $\sigma^2/\kappa_0$ も自動的に小さくなり，
+        $\theta$ の事前不確実性が強制的に小さくされてしまう
+  \item 逆に $\sigma^2$ が大きければ，$\theta$ についても
+        事前知識が薄いことになってしまう
+\end{itemize}
+
+実際には「$\theta$ については幅広い不確実性を持つが，
+$\sigma^2$ については経験上かなり小さいと分かっている」
+という状況も十分ありうる．
+共役事前分布は $\theta$ と $\sigma^2$ の事前不確実性を
+\textbf{連動させてしまう}ため，こうした状況を表現できない．
+
+\medskip
+また実用上の問題として，共役事前分布では $\sigma^2$ の周辺事後分布
+
+\[
+  p(\sigma^2 \mid y_1, \ldots, y_n) = \int p(\theta, \sigma^2 \mid y_1, \ldots, y_n)\,d\theta
+\]
+
+が逆ガンマ分布という標準的な分布になるため，モンテカルロサンプリングが
+次の2ステップで簡単にできた：
+
+\begin{enumerate}
+  \item $\sigma^{2(s)} \sim p(\sigma^2 \mid y_1, \ldots, y_n)$（逆ガンマ）
+  \item $\theta^{(s)} \sim p(\theta \mid \sigma^{2(s)}, y_1, \ldots, y_n)$（正規）
+\end{enumerate}
+
+\noindent この節では，$\theta$ と $\sigma^2$ の事前分布を\textbf{独立}にすることで
+上記の制約を取り除いた「半共役事前分布」を導入する．
+しかしそれに伴って，$\sigma^2$ の周辺事後分布が標準的でなくなるという
+新たな計算上の問題が生じる——これが第6章でギブスサンプラーを開発する動機になる．
+
+% ===========================
+\section{半共役事前分布}
+% ===========================
+
+\begin{defbox}{半共役事前分布（semiconjugate prior distribution）}
+$\theta$ と $\sigma^2$ を\textbf{事前独立}とした次の事前分布を
+\textbf{半共役事前分布}と呼ぶ：
+\begin{align*}
+  \theta &\sim \mathrm{Normal}(\mu_0,\, \tau_0^2), \\
+  \frac{1}{\sigma^2} &\sim \mathrm{Gamma}\!\left(\frac{\nu_0}{2},\, \frac{\nu_0 \sigma_0^2}{2}\right).
+\end{align*}
+すなわち同時事前分布が $p(\theta, \sigma^2) = p(\theta) \times p(\sigma^2)$ と
+積に分解される．
+\end{defbox}
+
+\noindent 共役事前分布との違いを並べると：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.8}
+\begin{tabular}{lll}
+\toprule
+ & 共役事前分布 & 半共役事前分布 \\
+\midrule
+$\theta$ の事前分布 & $\mathrm{Normal}(\mu_0, \sigma^2/\kappa_0)$
+  & $\mathrm{Normal}(\mu_0, \tau_0^2)$ \\
+$1/\sigma^2$ の事前分布 & $\mathrm{Gamma}(\nu_0/2, \nu_0\sigma_0^2/2)$
+  & $\mathrm{Gamma}(\nu_0/2, \nu_0\sigma_0^2/2)$ \\
+$\theta$ と $\sigma^2$ の関係 & \textbf{従属}（$\theta$ の分散が $\sigma^2$ に依存）
+  & \textbf{独立} \\
+$\theta$ の事前分散のパラメータ & $\kappa_0$（サンプルサイズ相当）
+  & $\tau_0^2$（直接指定） \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{pointbox}
+「半共役」（semi-conjugate）という名称の由来：
+$\sigma^2$ の事前分布は第5章と同じ逆ガンマ族（共役族）を使っているが，
+$\theta$ の事前分布は $\sigma^2$ と切り離されている．
+全体として見ると完全な共役族ではないので「半」がつく．
+
+\medskip
+$\theta_0^2$ は「$\theta$ についての事前不確実性の大きさ」を
+$\sigma^2$ と無関係に直接設定できる．
+たとえば正規分布の平均のセミナーで「95\% の確率で $\mu_0 \pm 2\tau_0$ の範囲にある」
+と主観的に決めることができる．
+\end{pointbox}
+
+% ===========================
+\section{$\theta$ の完全条件付き事後分布}
+% ===========================
+
+$\sigma^2$ の値を\textbf{既知}だと仮定したとき，
+$\theta$ の条件付き事後分布を求める．
+
+\medskip
+第5章の結果（5.2節）で $\theta$ の事前分布が $\mathrm{Normal}(\mu_0, \tau_0^2)$
+のケースを扱ったが，それがそのまま使える：
+
+\begin{thmbox}{$\theta$ の完全条件付き事後分布}
+半共役事前分布のもと，$\{Y_i\}$ が i.i.d. $\mathrm{Normal}(\theta, \sigma^2)$ のとき，
+\[
+  \theta \mid \sigma^2, y_1, \ldots, y_n
+  \;\sim\; \mathrm{Normal}(\mu_n, \tau_n^2)
+\]
+ただし
+\[
+  \mu_n = \frac{\mu_0/\tau_0^2 + n\bar{y}/\sigma^2}{1/\tau_0^2 + n/\sigma^2},
+  \qquad
+  \tau_n^2 = \frac{1}{1/\tau_0^2 + n/\sigma^2}.
+\]
+\end{thmbox}
+
+\paragraph{読み方}
+$\tau_n^2$ は「精度（分散の逆数）の和の逆数」：
+\[
+  \frac{1}{\tau_n^2} = \underbrace{\frac{1}{\tau_0^2}}_{\text{事前の精度}} + \underbrace{\frac{n}{\sigma^2}}_{\text{データの精度}}
+\]
+事前とデータの\textbf{精度を足し合わせる}と全体の精度になり，
+その逆数が事後分散になる——「情報は加算される」という直感的な規則．
+
+\medskip
+$\mu_n$ は事前平均 $\mu_0$ とデータの平均 $\bar{y}$ を
+\textbf{それぞれの精度で重み付けした加重平均}：
+\[
+  \mu_n
+  = \frac{1/\tau_0^2}{1/\tau_0^2 + n/\sigma^2}\,\mu_0
+  + \frac{n/\sigma^2}{1/\tau_0^2 + n/\sigma^2}\,\bar{y}.
+\]
+$n$ が大きいほどデータの精度 $n/\sigma^2$ が大きくなり，
+$\mu_n \to \bar{y}$，$\tau_n^2 \to 0$（事後分布がデータに集中する）．
+
+\paragraph{共役事前分布との対応}
+共役事前分布では $\tau_0^2 = \sigma^2/\kappa_0$ を代入すると
+$\mu_n = (\kappa_0 \mu_0 + n\bar{y})/(\kappa_0 + n)$，
+$\tau_n^2 = \sigma^2/(\kappa_0 + n)$ となり第5章の式に一致する．
+つまり共役事前分布は半共役事前分布の特殊ケースになっている．
+
+\paragraph{簡単な導出}
+$\sigma^2$ を既知として扱うと，
+$p(\theta \mid \sigma^2, y_1, \ldots, y_n) \propto p(\theta) \times p(y_1,\ldots,y_n \mid \theta, \sigma^2)$．
+正規の尤度と正規の事前分布の積を $\theta$ について整理すると，
+指数部が $\theta$ の2次式になり，これが正規分布の形になる（正規分布の
+「正規共役性」）．計算の詳細は第5章と同様なので省略する．
+
+% ===========================
+\section{$\sigma^2$ の周辺事後分布はなぜ標準分布でないのか}
+% ===========================
+
+$\sigma^2$ の周辺事後分布を得るには，
+同時事後分布 $p(\theta, \sigma^2 \mid y_1, \ldots, y_n)$ を
+$\theta$ について積分しなければならない：
+
+\[
+  p(\sigma^2 \mid y_1, \ldots, y_n)
+  = \int p(\theta, \sigma^2 \mid y_1, \ldots, y_n)\,d\theta.
+\]
+
+共役事前分布の場合は $\tau_0^2 = \sigma^2/\kappa_0$ という関係のおかげで
+この積分が閉じた形（逆ガンマ分布）になった．
+ところが半共役事前分布では $\tau_0^2$ が $\sigma^2$ と無関係な定数なので，
+積分の結果が次のような形になる：
+
+\[
+  p(\sigma^2 \mid y_1, \ldots, y_n)
+  \propto
+  p(\sigma^2) \times
+  \underbrace{\int p(\bar{y}, s^2 \mid \theta, \sigma^2)\,p(\theta)\,d\theta}_{\text{この積分が閉じた形にならない}}.
+\]
+
+具体的には，$\theta$ を積分消去する過程で
+$\tau_n^2 = (1/\tau_0^2 + n/\sigma^2)^{-1}$ が $\sigma^2$ に依存した形で残り，
+逆ガンマ分布とは異なる複雑な関数になる．
+
+\begin{warningbox}
+\textbf{問題のまとめ：}
+半共役事前分布のもとでは，
+$\theta \mid \sigma^2, \boldsymbol{y}$ は正規（サンプリング可），
+$\sigma^2 \mid \theta, \boldsymbol{y}$ は逆ガンマ（サンプリング可），
+しかし $\sigma^2 \mid \boldsymbol{y}$ は標準的な分布ではない（直接サンプリング不可）．
+
+\medskip
+だから「まず $\sigma^2$ をサンプリングして次に $\theta$ を」という
+第5章のステップ1→2の手順がそのままでは使えない．
+\end{warningbox}
+
+% ===========================
+\section{まとめと次節への橋渡し}
+% ===========================
+
+\begin{thmbox}{6.1節のまとめ}
+\begin{enumerate}
+  \item 共役事前分布では $\theta$ の事前不確実性が $\sigma^2$ に連動してしまう．
+        半共役事前分布（$\theta \perp \sigma^2$ in prior）はこの制約を取り除く．
+
+  \item $\theta$ の\textbf{完全条件付き}事後分布
+        $p(\theta \mid \sigma^2, \boldsymbol{y})$ は正規分布のまま——
+        これは $\sigma^2$ を固定すれば正規尤度と正規事前の積になるため．
+
+  \item しかし $\sigma^2$ の\textbf{周辺}事後分布 $p(\sigma^2 \mid \boldsymbol{y})$
+        は標準的な分布ではなく，直接サンプリングできない．
+
+  \item この問題を解決するのが\textbf{ギブスサンプラー}（6.3節以降）である．
+        鍵となるアイデアは
+        「周辺分布から直接サンプリングできなくても，
+        完全条件付き分布（$\theta \mid \sigma^2, \boldsymbol{y}$ と
+        $\sigma^2 \mid \theta, \boldsymbol{y}$）を交互にサンプリングすれば
+        同時分布に収束する」
+        ことである．
+\end{enumerate}
+\end{thmbox}
+
+\end{document}

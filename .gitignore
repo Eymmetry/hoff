@@ -11,3 +11,6 @@
 
 # Claude
 .claude/
+*.nav
+*.snm
+*.vrb

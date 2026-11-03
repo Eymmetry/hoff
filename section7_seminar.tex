@@ -1,0 +1,833 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm, bm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{listings}
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{gray!10},
+  frame=single,
+  breaklines=true,
+  keywordstyle=\color{blue!70!black},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red!70!black},
+}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+\newtcolorbox{derivbox}[1]{
+  colback=yellow!6, colframe=yellow!70!black,
+  fonttitle=\bfseries, title={計算補足：#1}, arc=3pt, breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt, breakable
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt, breakable
+}
+\newtcolorbox{warningbox}{
+  colback=red!5, colframe=red!60!black,
+  fonttitle=\bfseries, title={注意}, arc=3pt, breakable
+}
+\newtcolorbox{algobox}[1]{
+  colback=cyan!4, colframe=cyan!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt, breakable
+}
+
+\newcommand{\mvn}{\mathrm{MVN}}
+\newcommand{\IW}{\mathrm{inverse\text{-}Wishart}}
+\newcommand{\tr}{\mathrm{tr}}
+
+\title{{\large Hoff 第7章} \\[6pt]
+       \textbf{The Multivariate Normal Model} \\[4pt]
+       {\normalsize （多変量正規モデル）ゼミ資料（和訳＋計算補足）}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{この章のモチベーション}
+% ===========================
+
+第5・6章では1次元のデータ $y_i \in \mathbb{R}$ を扱った．
+しかし現実のデータはしばしば\textbf{複数の変数}を同時に持つ．
+例えば血圧・BMI・年齢は別々に見るより，\textbf{相関まで含めてまとめてモデル化}すべきである．
+
+\begin{pointbox}
+第7章のテーマは，1次元の正規分布に基づくベイズ推論を\textbf{多変量に拡張}することである．
+\begin{itemize}
+  \item 平均 $\theta$ → 平均\textbf{ベクトル} $\bm{\theta}$
+  \item 分散 $\sigma^2$ → 共分散\textbf{行列} $\Sigma$
+  \item inverse-gamma 事前分布 → inverse-\textbf{Wishart} 事前分布
+  \item 積分（スカラー）→ 積分（行列式・トレース）
+\end{itemize}
+\end{pointbox}
+
+% ===========================
+\section{7.1 多変量正規分布（The Multivariate Normal Density）}
+% ===========================
+
+\begin{defbox}{多変量正規分布（Multivariate Normal, MVN）}
+$p$ 次元の確率ベクトル $\bm{Y} = (Y_1, \ldots, Y_p)^\top$ が
+\[
+  \bm{Y} \mid \bm{\theta},\, \Sigma \;\sim\; \mvn(\bm{\theta},\, \Sigma)
+\]
+であるとは，その確率密度が
+\[
+  p(\bm{y} \mid \bm{\theta},\, \Sigma)
+  = (2\pi)^{-p/2}\,|\Sigma|^{-1/2}
+    \exp\!\left\{-\frac{1}{2}(\bm{y} - \bm{\theta})^\top \Sigma^{-1}(\bm{y} - \bm{\theta})\right\}
+\]
+で与えられることをいう．ここで
+\begin{itemize}
+  \item $\bm{\theta} \in \mathbb{R}^p$：\textbf{平均ベクトル}（$E[\bm{Y}] = \bm{\theta}$）
+  \item $\Sigma$：$p \times p$ の\textbf{共分散行列}（対称・正定値，$\Sigma_{jk} = \mathrm{Cov}[Y_j, Y_k]$）
+  \item $|\Sigma|$：$\Sigma$ の行列式（体積スケーリング因子）
+  \item $\Sigma^{-1}$：精度行列（$\Sigma$ の逆行列）
+\end{itemize}
+\end{defbox}
+
+\subsection{1次元との対応}
+
+$p = 1$ のとき $\Sigma = \sigma^2$（スカラー），$\Sigma^{-1} = 1/\sigma^2$，$|\Sigma|^{1/2} = \sigma$ となり，
+
+\[
+  p(y \mid \theta, \sigma^2)
+  = (2\pi)^{-1/2}\,\sigma^{-1}\,\exp\!\left\{-\frac{(y-\theta)^2}{2\sigma^2}\right\}
+\]
+と通常の正規分布に帰着する．
+
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{lll}
+\toprule
+ & 正規分布（1次元） & 多変量正規分布（$p$ 次元） \\
+\midrule
+データ & 数 $y \in \mathbb{R}$ & ベクトル $\bm{y} \in \mathbb{R}^p$ \\
+中心 & 平均 $\theta$ & 平均ベクトル $\bm{\theta}$ \\
+広がり & 分散 $\sigma^2$ & 共分散行列 $\Sigma$（$p\times p$）\\
+精度 & $1/\sigma^2$ & 精度行列 $\Sigma^{-1}$（$p\times p$）\\
+正規化定数 & $(2\pi\sigma^2)^{-1/2}$ & $(2\pi)^{-p/2}|\Sigma|^{-1/2}$ \\
+二乗距離 & $(y-\theta)^2/\sigma^2$ & $(\bm{y}-\bm{\theta})^\top\Sigma^{-1}(\bm{y}-\bm{\theta})$（マハラノビス距離の2乗）\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{二次形式（マハラノビス距離）の幾何学的意味}
+
+スカラーの場合，$(y - \theta)^2/\sigma^2$ が「$\theta$ から $y$ が何標準偏差離れているか」を測る．
+多変量の場合，$(\bm{y} - \bm{\theta})^\top \Sigma^{-1}(\bm{y} - \bm{\theta})$ が
+\textbf{マハラノビス距離の2乗}で，各方向の\textbf{ばらつきと相関を考慮した距離}である．
+
+\begin{center}
+\begin{tikzpicture}[scale=0.7]
+  \foreach \r/\x/\lab in {0/0/{$\rho = 0$（円）}, 0.7/7/{$\rho = 0.7$（右上がり楕円）}, -0.7/14/{$\rho = -0.7$（右下がり楕円）}} {
+    \begin{scope}[xshift=\x cm]
+      \draw[gray!40] (-2.8,-2.8) rectangle (2.8,2.8);
+      \draw[gray!60, ->] (-2.8,0) -- (3,0) node[right, black] {\tiny $y_1$};
+      \draw[gray!60, ->] (0,-2.8) -- (0,3) node[above, black] {\tiny $y_2$};
+      \pgfmathsetmacro{\a}{sqrt(1+\r)}
+      \pgfmathsetmacro{\b}{sqrt(1-\r)}
+      \fill[blue!10, rotate=45] (0,0) ellipse ({2*\a} and {2*\b});
+      \draw[blue!60!black, thick, rotate=45] (0,0) ellipse ({2*\a} and {2*\b});
+      \fill[blue!20, rotate=45] (0,0) ellipse ({\a} and {\b});
+      \draw[blue!50!black, thick, rotate=45] (0,0) ellipse ({\a} and {\b});
+      \fill (0,0) circle (2pt);
+      \node[below] at (0,-3.1) {\tiny \lab};
+    \end{scope}
+  }
+\end{tikzpicture}
+\end{center}
+
+\noindent 等高線（$(\bm{y}-\bm{\theta})^\top\Sigma^{-1}(\bm{y}-\bm{\theta}) = c$ の集合）は\textbf{楕円}になる．
+
+\subsection{共分散行列の読み方}
+
+$p = 2$ のとき
+\[
+  \Sigma = \begin{pmatrix} \sigma_1^2 & \sigma_{12} \\ \sigma_{12} & \sigma_2^2 \end{pmatrix},
+  \qquad
+  \rho = \frac{\sigma_{12}}{\sigma_1 \sigma_2}.
+\]
+\begin{itemize}
+  \item $\sigma_1^2, \sigma_2^2$：各変数のばらつき（対角成分）
+  \item $\sigma_{12}$：2変数が\textbf{一緒に動く傾向}（非対角成分）
+  \item $\rho \in (-1, 1)$：相関係数
+\end{itemize}
+
+\subsection{よく使う性質}
+
+\begin{thmbox}{性質（1次元の拡張）}
+$\bm{Y}_1, \ldots, \bm{Y}_n \overset{\mathrm{i.i.d.}}{\sim} \mvn(\bm{\theta}, \Sigma)$ のとき
+\begin{enumerate}
+  \item \textbf{標本平均も MVN：}$\bar{\bm{Y}} = \frac{1}{n}\sum_i \bm{Y}_i \sim \mvn(\bm{\theta},\, \Sigma/n)$
+  \item \textbf{線形変換：}$A\bm{Y} + \bm{c} \sim \mvn(A\bm{\theta} + \bm{c},\, A\Sigma A^\top)$
+  \item \textbf{周辺分布：}各成分 $Y_k \sim \mathrm{Normal}(\theta_k, \Sigma_{kk})$
+  \item \textbf{MVN では「無相関 $\Leftrightarrow$ 独立」}（一般の分布では成立しない）
+\end{enumerate}
+\end{thmbox}
+
+\begin{derivbox}{標本平均が $\mvn(\bm{\theta},\, \Sigma/n)$ になること}
+$\bm{Y}_i \overset{\mathrm{i.i.d.}}{\sim} \mvn(\bm{\theta}, \Sigma)$ のとき，独立な和の性質より
+\[
+  \sum_{i=1}^n \bm{Y}_i \sim \mvn(n\bm{\theta},\, n\Sigma).
+\]
+ここに線形変換 $A = \frac{1}{n}I$ を適用すると
+\[
+  \bar{\bm{Y}} = \frac{1}{n}\sum_i \bm{Y}_i \sim \mvn\!\left(\frac{1}{n}\cdot n\bm{\theta},\; \frac{1}{n^2}\cdot n\Sigma\right) = \mvn\!\left(\bm{\theta},\; \frac{\Sigma}{n}\right).
+\]
+スカラーの「$\bar{Y} \sim N(\theta, \sigma^2/n)$」の行列版である．
+\end{derivbox}
+
+% ===========================
+\section{7.2 平均ベクトルの半共役事前分布（A Semiconjugate Prior for the Mean）}
+% ===========================
+
+\subsection{モデル設定}
+
+\[
+  \bm{Y}_1, \ldots, \bm{Y}_n \mid \bm{\theta}, \Sigma
+  \;\overset{\mathrm{i.i.d.}}{\sim}\; \mvn(\bm{\theta},\, \Sigma),
+  \qquad
+  \bm{\theta} \;\sim\; \mvn(\bm{\mu}_0,\, \Lambda_0).
+\]
+$\Sigma$ は\textbf{既知}として $\bm{\theta}$ を推論する（7.3節で $\Sigma$ も推論する）．
+
+\begin{pointbox}
+「\textbf{半共役}（semiconjugate）」とは，$\bm{\theta}$ の事前分布が $\Sigma$ を条件とした場合に共役であるが，
+$(\bm{\theta}, \Sigma)$ の\textbf{同時}分布としては共役でない，という意味である（第6章の1次元版の拡張）．
+\end{pointbox}
+
+\subsection{事後分布の導出}
+
+目標：$p(\bm{\theta} \mid \bm{y}_1, \ldots, \bm{y}_n, \Sigma)$ を求める．
+
+\begin{align*}
+  p(\bm{\theta} \mid \bm{Y}, \Sigma)
+  &\propto p(\bm{Y} \mid \bm{\theta}, \Sigma)\, p(\bm{\theta}) \\
+  &= \left[\prod_{i=1}^n p(\bm{y}_i \mid \bm{\theta}, \Sigma)\right] p(\bm{\theta}).
+\end{align*}
+
+\textbf{ステップ1：尤度の指数部分を整理する．}
+
+\[
+  \log p(\bm{Y} \mid \bm{\theta}, \Sigma) + \text{const}
+  = -\frac{1}{2} \sum_{i=1}^n (\bm{y}_i - \bm{\theta})^\top \Sigma^{-1} (\bm{y}_i - \bm{\theta}).
+\]
+
+\begin{derivbox}{二次形式の展開：$\sum_i (\bm{y}_i - \bm{\theta})^\top \Sigma^{-1} (\bm{y}_i - \bm{\theta})$}
+各項を展開すると
+\[
+  (\bm{y}_i - \bm{\theta})^\top \Sigma^{-1} (\bm{y}_i - \bm{\theta})
+  = \bm{y}_i^\top \Sigma^{-1} \bm{y}_i
+    - 2\bm{y}_i^\top \Sigma^{-1} \bm{\theta}
+    + \bm{\theta}^\top \Sigma^{-1} \bm{\theta}.
+\]
+$i$ について和をとり，$\bm{\theta}$ に依存しない第1項を定数として落とすと
+\begin{align*}
+  \sum_{i=1}^n (\bm{y}_i - \bm{\theta})^\top \Sigma^{-1}(\bm{y}_i - \bm{\theta})
+  &= \bm{\theta}^\top(n\Sigma^{-1})\bm{\theta} - 2\left(\sum_i \bm{y}_i\right)^\top \Sigma^{-1}\bm{\theta} + \text{const} \\
+  &= \bm{\theta}^\top(n\Sigma^{-1})\bm{\theta} - 2(n\bar{\bm{y}})^\top \Sigma^{-1}\bm{\theta} + \text{const}.
+\end{align*}
+つまり尤度の指数部分に出てくる $\bm{\theta}$ に関わる二次と一次の係数は
+\[
+  A_{\ell} = n\Sigma^{-1}, \quad \bm{b}_{\ell} = n\Sigma^{-1}\bar{\bm{y}}.
+\]
+\end{derivbox}
+
+\textbf{ステップ2：事前分布の指数部分を整理する．}
+
+\[
+  \log p(\bm{\theta}) + \text{const}
+  = -\frac{1}{2}(\bm{\theta} - \bm{\mu}_0)^\top \Lambda_0^{-1}(\bm{\theta} - \bm{\mu}_0).
+\]
+
+\begin{derivbox}{事前分布の展開}
+\[
+  (\bm{\theta} - \bm{\mu}_0)^\top \Lambda_0^{-1}(\bm{\theta} - \bm{\mu}_0)
+  = \bm{\theta}^\top \Lambda_0^{-1} \bm{\theta}
+    - 2\bm{\mu}_0^\top \Lambda_0^{-1}\bm{\theta}
+    + \bm{\mu}_0^\top \Lambda_0^{-1}\bm{\mu}_0.
+\]
+よって事前分布の係数は
+\[
+  A_0 = \Lambda_0^{-1}, \quad \bm{b}_0 = \Lambda_0^{-1}\bm{\mu}_0.
+\]
+\end{derivbox}
+
+\textbf{ステップ3：指数をまとめて事後分布の型を読み取る．}
+
+尤度 × 事前分布の指数全体を $\bm{\theta}$ について整理すると
+\[
+  -\frac{1}{2}\Bigl[\bm{\theta}^\top(A_0 + A_\ell)\bm{\theta} - 2(\bm{b}_0 + \bm{b}_\ell)^\top \bm{\theta}\Bigr] + \text{const}.
+\]
+これは $\mvn$ の核（kernel）の形
+\[
+  -\frac{1}{2}(\bm{\theta} - \bm{m})^\top V^{-1}(\bm{\theta} - \bm{m})
+  \;\propto\;
+  \exp\!\left\{-\frac{1}{2}\bm{\theta}^\top V^{-1}\bm{\theta} + \bm{\theta}^\top V^{-1}\bm{m}\right\}
+\]
+と対応させると，$V^{-1} = A_0 + A_\ell$，$V^{-1}\bm{m} = \bm{b}_0 + \bm{b}_\ell$ なので：
+
+\begin{thmbox}{7.2節の事後分布（定理）}
+\[
+  \bm{\theta} \mid \bm{Y}, \Sigma \;\sim\; \mvn(\bm{\mu}_n,\, \Lambda_n),
+\]
+\begin{align}
+  \Lambda_n &= \left(\Lambda_0^{-1} + n\Sigma^{-1}\right)^{-1}, \label{eq:Lambdan} \\
+  \bm{\mu}_n &= \Lambda_n\!\left(\Lambda_0^{-1}\bm{\mu}_0 + n\Sigma^{-1}\bar{\bm{y}}\right). \label{eq:mun}
+\end{align}
+\end{thmbox}
+
+\begin{derivbox}{MVN の核の識別（行列版の平方完成）}
+1次元の場合，$e^{-ax^2/2+bx} \propto \exp\{-\frac{a}{2}(x - b/a)^2\}$
+なので $\mathrm{Normal}(b/a,\, 1/a)$ と読み取った．
+
+多変量では，対称正定値行列 $A$ に対して
+\[
+  \exp\!\left\{-\frac{1}{2}\bm{\theta}^\top A\bm{\theta} + \bm{\theta}^\top \bm{b}\right\}
+  = \exp\!\left\{-\frac{1}{2}(\bm{\theta} - A^{-1}\bm{b})^\top A (\bm{\theta} - A^{-1}\bm{b})\right\}
+    \cdot \exp\!\left\{\frac{1}{2}\bm{b}^\top A^{-1}\bm{b}\right\}.
+\]
+最後の因子は $\bm{\theta}$ に依存しないので比例の意味では定数．
+したがって $\bm{\theta} \sim \mvn(A^{-1}\bm{b},\, A^{-1})$，すなわち精度行列が $A$，平均が $A^{-1}\bm{b}$．
+
+今の場合 $A = \Lambda_0^{-1} + n\Sigma^{-1}$，$\bm{b} = \Lambda_0^{-1}\bm{\mu}_0 + n\Sigma^{-1}\bar{\bm{y}}$ なので，
+\[
+  \Lambda_n = A^{-1} = \left(\Lambda_0^{-1} + n\Sigma^{-1}\right)^{-1}, \qquad
+  \bm{\mu}_n = A^{-1}\bm{b} = \Lambda_n\!\left(\Lambda_0^{-1}\bm{\mu}_0 + n\Sigma^{-1}\bar{\bm{y}}\right).
+\]
+\end{derivbox}
+
+\subsection{1次元との対応}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{lll}
+\toprule
+ & 1次元（5.2節） & 多変量（7.2節） \\
+\midrule
+精度の加算 & $1/\tau_n^2 = 1/\tau_0^2 + n/\sigma^2$ & $\Lambda_n^{-1} = \Lambda_0^{-1} + n\Sigma^{-1}$ \\
+事後平均 & $\mu_n = \tau_n^2({\mu_0}/{\tau_0^2} + {n\bar{y}}/{\sigma^2})$ & $\bm{\mu}_n = \Lambda_n(\Lambda_0^{-1}\bm{\mu}_0 + n\Sigma^{-1}\bar{\bm{y}})$ \\
+事後分布 & $\theta \mid \bm{y}, \sigma^2 \sim N(\mu_n, \tau_n^2)$ & $\bm{\theta} \mid \bm{Y}, \Sigma \sim \mvn(\bm{\mu}_n, \Lambda_n)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent 1次元でも多変量でも，\textbf{精度（精度行列）は加算される}，という構造は全く同じである．
+
+\subsection{事後平均の重み付き平均解釈}
+
+事後平均 $\bm{\mu}_n$ を書き直すと
+\begin{align*}
+  \bm{\mu}_n
+  &= \Lambda_n \Lambda_0^{-1}\bm{\mu}_0 + \Lambda_n \cdot n\Sigma^{-1}\bar{\bm{y}} \\
+  &= (I - \Lambda_n n\Sigma^{-1})\bm{\mu}_0 + \Lambda_n n\Sigma^{-1} \bar{\bm{y}}.
+\end{align*}
+$W = \Lambda_n n\Sigma^{-1} = (\Lambda_0^{-1} + n\Sigma^{-1})^{-1} \cdot n\Sigma^{-1}$ とおくと
+\[
+  \bm{\mu}_n = (I - W)\bm{\mu}_0 + W\bar{\bm{y}}.
+\]
+これは $\bm{\mu}_0$（事前平均）と $\bar{\bm{y}}$（標本平均）の\textbf{行列重み付き平均}である．
+$n \to \infty$ のとき $W \to I$ なので $\bm{\mu}_n \to \bar{\bm{y}}$（データに引き寄せられる）．
+
+% ===========================
+\section{7.3 逆ウィシャート分布（The Inverse-Wishart Distribution）}
+% ===========================
+
+\subsection{ガンマ分布との類比}
+
+ウィシャート分布はガンマ分布の多変量版である（$z$ が平均ゼロの一変量正規確率変数であれば $z^2$ はガンマ確率変数になることを思い出されたい）．
+一変量正規モデルでは，精度 $1/\sigma^2$ に対する事前分布はガンマ分布であり，
+分散の完全条件付き分布は逆ガンマ分布であった．同様に，
+\textbf{ウィシャート分布は精度行列 $\Sigma^{-1}$ に対する半共役事前分布}となることがわかる．
+したがって，\textbf{逆ウィシャート分布が共分散行列 $\Sigma$ に対する半共役事前分布}となる．
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lll}
+\toprule
+ & 1次元正規モデル & 多変量正規モデル \\
+\midrule
+推定する広がり & 分散 $\sigma^2 > 0$ & 共分散行列 $\Sigma$（正定値対称）\\
+精度パラメータ & $1/\sigma^2$ & 精度行列 $\Sigma^{-1}$ \\
+精度の事前分布 & $\mathrm{gamma}(\nu_0/2,\, \nu_0\sigma_0^2/2)$ & $\mathrm{Wishart}(\nu_0,\, S_0^{-1})$ \\
+広がりの事前分布 & $\IG(\nu_0/2,\, \nu_0\sigma_0^2/2)$ & $\IW(\nu_0,\, S_0^{-1})$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{ウィシャート分布の構成：$Z^\top Z$ を用いたランダム共分散行列}
+
+ウィシャート分布がどのような分布かを理解するために，まず標本共分散行列の構造を確認する．
+
+$\bm{z}_1, \ldots, \bm{z}_n$ が平均ゼロの母集団からのサンプルであるとき，
+行列 $\bm{z}_i\bm{z}_i^\top / n$ は，ベクトル $\bm{z}_i$ が全観測値の
+共分散行列の推定に対して寄与する部分と考えることができる．
+この平均ゼロの場合，$Z^\top Z$ を $n$ で割ると\textbf{標本共分散行列}（不偏推定量）が得られる：
+\[
+  \frac{1}{n}[Z^\top Z]_{j,j}
+  = \frac{1}{n}\sum_{i=1}^n z_{i,j}^2
+  = s_{j,j} = s_j^2,
+  \qquad
+  \frac{1}{n}[Z^\top Z]_{j,k}
+  = \frac{1}{n}\sum_{i=1}^n z_{i,j}z_{i,k}
+  = s_{j,k}.
+\]
+$n > p$ かつ $\bm{z}_i$ たちが線形独立であれば，$Z^\top Z$ は正定値かつ対称になる．
+このことから，「ランダムな」共分散行列を構成する以下の方法が示唆される：
+
+\begin{defbox}{ウィシャート分布（Wishart distribution）}
+正の整数 $\nu_0$ と $p \times p$ 正定値対称行列 $\Phi_0$ が与えられたとき，以下の手順で
+$Z^\top Z$ を生成すると，$Z^\top Z \sim \mathrm{Wishart}(\nu_0, \Phi_0)$ となる：
+\begin{enumerate}
+  \item $\bm{z}_1, \ldots, \bm{z}_{\nu_0} \overset{\mathrm{i.i.d.}}{\sim} \mvn(\bm{0}, \Phi_0)$ をサンプリングする；
+  \item $Z^\top Z = \sum_{i=1}^{\nu_0} \bm{z}_i\bm{z}_i^\top$ を計算する．
+\end{enumerate}
+期待値は $E[Z^\top Z] = \nu_0 \Phi_0$（1次元の $E[z^2] = \sigma^2$ の行列版）．
+\end{defbox}
+
+\begin{derivbox}{$E[Z^\top Z] = \nu_0 \Phi_0$ の確認}
+$\bm{z}_i \sim \mvn(\bm{0}, \Phi_0)$ のとき，$E[\bm{z}_i\bm{z}_i^\top] = \mathrm{Cov}[\bm{z}_i] = \Phi_0$（平均ゼロなので共分散＝2次モーメント）．
+
+したがって
+\[
+  E\!\left[Z^\top Z\right] = E\!\left[\sum_{i=1}^{\nu_0}\bm{z}_i\bm{z}_i^\top\right]
+  = \sum_{i=1}^{\nu_0} E[\bm{z}_i\bm{z}_i^\top]
+  = \nu_0 \Phi_0.
+\]
+1次元では $z \sim N(0, \sigma^2)$ のとき $E[z^2] = \sigma^2$ であったから，
+$E[Z^\top Z] = \nu_0\Phi_0$ はその直接の行列版である．
+\end{derivbox}
+
+\subsection{逆ウィシャート分布の定義とサンプリング手順}
+
+わずかに再パラメータ化すると，逆ウィシャート分布から共分散行列 $\Sigma$ をサンプリングするには
+以下の3ステップを踏む：
+
+\begin{algobox}{逆ウィシャート分布からのサンプリング手順}
+\begin{enumerate}
+  \item $\bm{z}_1, \ldots, \bm{z}_{\nu_0} \overset{\mathrm{i.i.d.}}{\sim} \mvn(\bm{0},\, S_0^{-1})$ をサンプリングする；
+  \item $Z^\top Z = \sum_{i=1}^{\nu_0} \bm{z}_i\bm{z}_i^\top$ を計算する；
+  \item $\Sigma = (Z^\top Z)^{-1}$ とおく．
+\end{enumerate}
+このとき精度行列 $\Sigma^{-1} = Z^\top Z \sim \mathrm{Wishart}(\nu_0, S_0^{-1})$ であり，
+共分散行列 $\Sigma \sim \IW(\nu_0, S_0^{-1})$ となる．
+\end{algobox}
+
+\begin{pointbox}
+\textbf{直感：}$\bm{z}_i \sim \mvn(\bm{0}, S_0^{-1})$ の標本共分散の逆行列を取ったものが，
+$\IW(\nu_0, S_0^{-1})$ からのサンプルである．
+$\nu_0$ が大きい（サンプル数が多い）ほど，標本共分散は母共分散 $S_0^{-1}$ に近くなり，
+$\Sigma = (Z^\top Z)^{-1}$ は $(S_0^{-1})^{-1} = S_0$（を$\nu_0$で割ったもの）の周りに集中する．
+\end{pointbox}
+
+\begin{defbox}{逆ウィシャート分布（inverse-Wishart distribution）}
+正定値対称行列 $\Sigma$ が $\IW(\nu_0, S_0^{-1})$ に従うとは，密度が
+\[
+  p(\Sigma) \propto
+  |\Sigma|^{-(\nu_0 + p + 1)/2}
+  \exp\!\left\{-\frac{1}{2}\,\tr\!\left(S_0 \Sigma^{-1}\right)\right\}
+\]
+で与えられることをいう．パラメータは
+\begin{itemize}
+  \item $\nu_0 > p - 1$：\textbf{自由度}（degrees of freedom），「事前のサンプル数」
+  \item $S_0$：$p \times p$ 正定値対称行列（\textbf{スケール行列}）
+\end{itemize}
+精度行列 $\Sigma^{-1}$ および共分散行列 $\Sigma$ の期待値は
+\begin{align*}
+  E[\Sigma^{-1}] &= \nu_0 S_0^{-1}, \\
+  E[\Sigma] &= \frac{1}{\nu_0 - p - 1}(S_0^{-1})^{-1} = \frac{S_0}{\nu_0 - p - 1} \qquad (\nu_0 > p + 1).
+\end{align*}
+\end{defbox}
+
+\begin{derivbox}{$E[\Sigma^{-1}] = \nu_0 S_0^{-1}$ の確認}
+サンプリング手順より $\Sigma^{-1} = Z^\top Z = \sum_{i=1}^{\nu_0}\bm{z}_i\bm{z}_i^\top$，
+$\bm{z}_i \sim \mvn(\bm{0}, S_0^{-1})$．
+
+先ほどと同様，$E[\bm{z}_i\bm{z}_i^\top] = S_0^{-1}$ なので
+\[
+  E[\Sigma^{-1}] = E\!\left[\sum_{i=1}^{\nu_0}\bm{z}_i\bm{z}_i^\top\right] = \nu_0 S_0^{-1}.
+\]
+1次元での「$E[1/\sigma^2] = \nu_0/(\nu_0\sigma_0^2) = 1/\sigma_0^2$（倍数）」に相当する．
+\end{derivbox}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lll}
+\toprule
+ & 1次元 & 多変量 \\
+\midrule
+密度の指数部分 & $\exp\{-\nu_0\sigma_0^2/(2\sigma^2)\}$ & $\exp\{-\frac12\tr(S_0\Sigma^{-1})\}$ \\
+密度のべき乗部分 & $(\sigma^2)^{-(\nu_0/2+1)}$ & $|\Sigma|^{-(\nu_0+p+1)/2}$ \\
+事後での更新 & $\nu_0\sigma_0^2$ に $\sum(y_i-\theta)^2$ を足す & $S_0$ に $\sum(\bm{y}_i-\bm{\theta})(\bm{y}_i-\bm{\theta})^\top$ を足す \\
+$E[\text{広がり}]$ & $\sigma_0^2$（$\nu_0 \gg 0$ のとき） & $S_0/(\nu_0-p-1)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{トレース恒等式：$\tr$ がなぜ出てくるか}
+
+逆ウィシャート密度の指数の中に $\tr(S_0\Sigma^{-1})$ が出るのは，
+多変量正規の尤度を $\Sigma$ の関数として書き直したときに自然に生じる．
+
+\begin{derivbox}{トレース恒等式：$\sum_i (\bm{y}_i - \bm{\theta})^\top \Sigma^{-1}(\bm{y}_i - \bm{\theta}) = \tr(S_\theta \Sigma^{-1})$}
+\textbf{使う事実：}任意のスカラー $c$ に対して $c = \tr(c)$，および $\tr(AB) = \tr(BA)$（サイクリック性）．
+
+各 $i$ について，$(\bm{y}_i - \bm{\theta})^\top \Sigma^{-1}(\bm{y}_i - \bm{\theta})$ はスカラーなので
+\begin{align*}
+  (\bm{y}_i - \bm{\theta})^\top \Sigma^{-1}(\bm{y}_i - \bm{\theta})
+  &= \tr\!\left((\bm{y}_i - \bm{\theta})^\top \Sigma^{-1}(\bm{y}_i - \bm{\theta})\right)
+    \quad\text{（スカラー $= \tr(\text{スカラー})$）}\\
+  &= \tr\!\left(\Sigma^{-1}(\bm{y}_i - \bm{\theta})(\bm{y}_i - \bm{\theta})^\top\right).
+    \quad\text{（$\tr(ABC) = \tr(CAB)$ でサイクル）}
+\end{align*}
+$i = 1, \ldots, n$ について和をとると
+\begin{align*}
+  \sum_{i=1}^n (\bm{y}_i - \bm{\theta})^\top \Sigma^{-1}(\bm{y}_i - \bm{\theta})
+  &= \sum_{i=1}^n \tr\!\left(\Sigma^{-1}(\bm{y}_i - \bm{\theta})(\bm{y}_i - \bm{\theta})^\top\right) \\
+  &= \tr\!\left(\Sigma^{-1} \sum_{i=1}^n (\bm{y}_i - \bm{\theta})(\bm{y}_i - \bm{\theta})^\top\right)
+    \quad\text{（トレースの線形性）} \\
+  &= \tr\!\left(\Sigma^{-1} S_\theta\right)
+  = \tr\!\left(S_\theta \Sigma^{-1}\right).
+    \quad\text{（$\tr(AB) = \tr(BA)$）}
+\end{align*}
+ここで
+\[
+  S_\theta = \sum_{i=1}^n (\bm{y}_i - \bm{\theta})(\bm{y}_i - \bm{\theta})^\top
+\]
+を\textbf{平方和行列}（sum-of-squares matrix）という．$p\times p$ 正半定値行列で，
+1次元の $\sum(y_i - \theta)^2$ の行列版である．
+\end{derivbox}
+
+\subsection{$\Sigma$ の条件付き事後分布}
+
+$\bm{\theta}$ を条件としたとき，$\Sigma$ の事後分布を導出する．
+
+\[
+  p(\Sigma \mid \bm{Y}, \bm{\theta})
+  \propto p(\bm{Y} \mid \bm{\theta}, \Sigma)\, p(\Sigma).
+\]
+
+\textbf{尤度部分：}
+\[
+  p(\bm{Y} \mid \bm{\theta}, \Sigma)
+  = \prod_{i=1}^n (2\pi)^{-p/2}|\Sigma|^{-1/2}
+    \exp\!\left\{-\frac{1}{2}(\bm{y}_i - \bm{\theta})^\top\Sigma^{-1}(\bm{y}_i-\bm{\theta})\right\}.
+\]
+$(2\pi)^{-p/2}$ は $\Sigma$ に依存しないので定数として落とす．
+トレース恒等式を使うと，$\Sigma$ に関わる部分のみ
+\[
+  \propto |\Sigma|^{-n/2} \exp\!\left\{-\frac{1}{2}\tr(S_\theta \Sigma^{-1})\right\}.
+\]
+
+\textbf{事前分布部分：}$\Sigma \sim \IW(\nu_0, S_0^{-1})$ より
+\[
+  p(\Sigma) \propto |\Sigma|^{-(\nu_0+p+1)/2} \exp\!\left\{-\frac{1}{2}\tr(S_0\Sigma^{-1})\right\}.
+\]
+
+\textbf{事後分布：}2つを掛け合わせ，$|\Sigma|$ のべき乗をまとめ，指数の中のトレースを合算する：
+\begin{align*}
+  p(\Sigma \mid \bm{Y}, \bm{\theta})
+  &\propto |\Sigma|^{-n/2} \exp\!\left\{-\frac12\tr(S_\theta\Sigma^{-1})\right\}
+  \cdot |\Sigma|^{-(\nu_0+p+1)/2} \exp\!\left\{-\frac12\tr(S_0\Sigma^{-1})\right\} \\
+  &= |\Sigma|^{-\{(\nu_0+n)+p+1\}/2}
+  \exp\!\left\{-\frac12\tr\!\left((S_0+S_\theta)\Sigma^{-1}\right)\right\}.
+\end{align*}
+これは $\IW(\nu_0 + n,\, (S_0 + S_\theta)^{-1})$ の密度の核と一致する．
+
+\begin{thmbox}{$\Sigma$ の条件付き事後分布（定理）}
+\[
+  \Sigma \mid \bm{Y},\, \bm{\theta} \;\sim\; \IW\!\left(\nu_0 + n,\; \left(S_0 + S_\theta\right)^{-1}\right),
+  \qquad
+  S_\theta = \sum_{i=1}^n (\bm{y}_i - \bm{\theta})(\bm{y}_i - \bm{\theta})^\top.
+\]
+更新則：自由度に $n$ を足し，スケール行列に $S_\theta$ を足すだけ．
+\end{thmbox}
+
+\begin{pointbox}
+更新則の対応（1次元との類比）：
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lll}
+\toprule
+ & 1次元（逆ガンマ） & 多変量（逆ウィシャート） \\
+\midrule
+自由度の更新 & $\nu_0 \to \nu_0 + n$ & $\nu_0 \to \nu_0 + n$ \\
+「平方和」の更新 & $\nu_0\sigma_0^2 \to \nu_0\sigma_0^2 + \sum(y_i-\theta)^2$ & $S_0 \to S_0 + S_\theta$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+スカラーの平方和 $\sum(y_i-\theta)^2$ が，行列の平方和 $S_\theta = \sum(\bm{y}_i-\bm{\theta})(\bm{y}_i-\bm{\theta})^\top$ に置き換わっただけ．
+\end{pointbox}
+
+\subsection{自由度とスケール行列の意味}
+
+\begin{itemize}
+  \item $\nu_0$ が大きいほど，$\Sigma$ の事後分布は事前に強く縛られる（「事前の仮想サンプル数」）．
+  \item $E[\Sigma] = S_0/(\nu_0 - p - 1)$ なので，$S_0 = (\nu_0-p-1)\Sigma_0$ とすれば $E[\Sigma] = \Sigma_0$，つまり $\Sigma_0$ を事前の「典型的な共分散行列」として指定できる．
+  \item $\nu_0 = p + 2$ は $E[\Sigma] = S_0$ を保ちつつ分布を最も拡散的（情報量が最小）にする最小の自由度．
+\end{itemize}
+
+% ===========================
+\section{7.4 ギブスサンプラー（Gibbs Sampling of the Mean and Covariance）}
+% ===========================
+
+\subsection{なぜ同時事後分布が求まらないか}
+
+$(\bm{\theta}, \Sigma)$ の\textbf{同時}事後分布 $p(\bm{\theta}, \Sigma \mid \bm{Y})$ を解析的に求めることは困難である．
+これは半共役（semiconjugate）な設定の本質的な制約であり，第6章の MCMC の多変量版の動機づけとなる．
+
+しかし各々の\textbf{条件付き}事後分布は既知の分布形を持つ：
+\[
+  \bm{\theta} \mid \bm{Y}, \Sigma \;\sim\; \mvn(\bm{\mu}_n, \Lambda_n),
+  \qquad
+  \Sigma \mid \bm{Y}, \bm{\theta} \;\sim\; \IW(\nu_0+n,\, (S_0+S_\theta)^{-1}).
+\]
+これを利用した\textbf{ギブスサンプラー}が有効である．
+
+\subsection{ギブスサンプリングのアルゴリズム}
+
+\begin{algobox}{アルゴリズム：$(\bm{\theta}, \Sigma)$ のギブスサンプラー}
+\textbf{初期化：}$\Sigma^{(0)}$ を適当な値（例：標本共分散行列）に設定する．
+
+\medskip
+\textbf{イテレーション $s = 1, 2, \ldots, S$：}
+\begin{enumerate}
+  \item $\Lambda_n^{(s)} = \left(\Lambda_0^{-1} + n\left(\Sigma^{(s-1)}\right)^{-1}\right)^{-1}$，
+        $\bm{\mu}_n^{(s)} = \Lambda_n^{(s)}\!\left(\Lambda_0^{-1}\bm{\mu}_0 + n\left(\Sigma^{(s-1)}\right)^{-1}\bar{\bm{y}}\right)$ を計算する．
+
+  \item $\bm{\theta}^{(s)} \sim \mvn\!\left(\bm{\mu}_n^{(s)},\, \Lambda_n^{(s)}\right)$ をサンプリングする．
+
+  \item $S_\theta^{(s)} = \sum_{i=1}^n \left(\bm{y}_i - \bm{\theta}^{(s)}\right)\!\left(\bm{y}_i - \bm{\theta}^{(s)}\right)^\top$ を計算する．
+
+  \item $\Sigma^{(s)} \sim \IW\!\left(\nu_0 + n,\; \left(S_0 + S_\theta^{(s)}\right)^{-1}\right)$ をサンプリングする．
+\end{enumerate}
+
+\medskip
+\textbf{結果：}サンプル列 $\{(\bm{\theta}^{(1)}, \Sigma^{(1)}), \ldots, (\bm{\theta}^{(S)}, \Sigma^{(S)})\}$ が
+バーンイン後に $(bm{\theta}, \Sigma)$ の同時事後分布から近似的に得られる．
+\end{algobox}
+
+\begin{pointbox}
+\textbf{なぜギブスサンプラーは動くか}（直感）：
+\begin{itemize}
+  \item $\Sigma$ を固定すれば $\bm{\theta}$ の分布は $\mvn$ → 正確にサンプリングできる．
+  \item $\bm{\theta}$ を固定すれば $\Sigma$ の分布は $\IW$ → Wishart サンプラーの逆行列で正確にサンプリングできる．
+  \item 交互に繰り返せば，マルコフ連鎖の定常分布が $(\bm{\theta}, \Sigma)$ の同時事後分布になる（詳細は第6章）．
+\end{itemize}
+\end{pointbox}
+
+\subsection{R での実装}
+
+\begin{lstlisting}
+# データ：n x p 行列 Y
+# 事前分布のパラメータ
+mu0 <- c(50, 50)           # 事前平均ベクトル
+L0 <- matrix(c(625,312.5,312.5,625), 2, 2)  # 事前共分散行列
+nu0 <- 4                   # 事前自由度
+S0 <- matrix(c(625,312.5,312.5,625), 2, 2)  # 事前スケール行列
+
+# 十分統計量
+n <- nrow(Y)
+ybar <- colMeans(Y)        # 標本平均ベクトル
+
+# 初期値
+Sigma <- cov(Y)
+
+# ギブスサンプラー
+THETA <- SIGMA <- NULL
+for (s in 1:5000) {
+  # theta のサンプリング
+  Ln <- solve(solve(L0) + n * solve(Sigma))
+  mun <- Ln %*% (solve(L0) %*% mu0 + n * solve(Sigma) %*% ybar)
+  theta <- mvrnorm(1, mun, Ln)
+
+  # Sigma のサンプリング
+  Stheta <- (t(Y) - theta) %*% t(t(Y) - theta)  # 平方和行列
+  Sigma <- solve(rwish(nu0 + n, solve(S0 + Stheta)))
+
+  THETA <- rbind(THETA, theta)
+  SIGMA <- rbind(SIGMA, c(Sigma))
+}
+\end{lstlisting}
+
+\subsection{読解例（Hoff 本の例）}
+
+\begin{exbox}{読解力のデータ（$n = 22$，$p = 2$）}
+22名の生徒に対して，2つのテスト（時間1と時間2）のスコアが記録されている．
+
+\medskip
+\textbf{事前分布の設定：}
+\[
+  \bm{\mu}_0 = \begin{pmatrix} 50 \\ 50 \end{pmatrix}, \quad
+  \Lambda_0 = \begin{pmatrix} 625 & 312.5 \\ 312.5 & 625 \end{pmatrix},
+  \quad \nu_0 = 4,\quad
+  S_0 = \begin{pmatrix} 625 & 312.5 \\ 312.5 & 625 \end{pmatrix}.
+\]
+
+\medskip
+\textbf{データの要約：}
+\[
+  \bar{\bm{y}} = \begin{pmatrix} 47.18 \\ 53.77 \end{pmatrix},
+  \qquad
+  S_{\bar{y}} = \begin{pmatrix} 87.0 & 56.9 \\ 56.9 & 75.1 \end{pmatrix}.
+\]
+
+\medskip
+\textbf{事後分布（MCMC 結果）：}
+\[
+  E[\theta_1 \mid \bm{Y}] \approx 47.5, \quad
+  E[\theta_2 \mid \bm{Y}] \approx 53.5, \quad
+  E[\rho \mid \bm{Y}] \approx 0.70.
+\]
+データからは2つのテストに正の相関（$\rho \approx 0.70$）があることが示唆された．
+\end{exbox}
+
+\begin{pointbox}
+ギブスサンプラーを用いれば，$\theta_1 - \theta_2$ の事後分布や
+$P(\theta_1 < \theta_2 \mid \bm{Y})$ なども，サンプルから直接計算できる．
+
+$s = 1, \ldots, S$ のサンプルを使って
+\[
+  P(\theta_1 < \theta_2 \mid \bm{Y}) \approx \frac{1}{S}\sum_{s=1}^S \mathbf{1}\!\left[\theta_1^{(s)} < \theta_2^{(s)}\right].
+\]
+\end{pointbox}
+
+% ===========================
+\section{7.5 欠損データと代入法（Missing Data and Imputation）}
+% ===========================
+
+\subsection{欠損データの問題設定}
+
+現実のデータでは，観測されなかった値（\textbf{欠損値}）が含まれる．
+観測できた部分を $\bm{y}_{\text{obs}}$，欠損部分を $\bm{y}_{\text{miss}}$ とする．
+
+\medskip
+ベイズ的アプローチでは，$\bm{y}_{\text{miss}}$ を\textbf{未知パラメータ}と同様に扱い，
+$(\bm{\theta}, \Sigma, \bm{y}_{\text{miss}})$ の同時事後分布を考える．
+
+\subsection{MVN の条件付き分布}
+
+\begin{thmbox}{多変量正規分布の条件付き分布}
+$\bm{Y} \sim \mvn(\bm{\theta}, \Sigma)$ を観測部分と欠損部分に分割する：
+\[
+  \bm{Y} = \begin{pmatrix} \bm{Y}_1 \\ \bm{Y}_2 \end{pmatrix},\quad
+  \bm{\theta} = \begin{pmatrix} \bm{\theta}_1 \\ \bm{\theta}_2 \end{pmatrix},\quad
+  \Sigma = \begin{pmatrix} \Sigma_{11} & \Sigma_{12} \\ \Sigma_{21} & \Sigma_{22} \end{pmatrix}.
+\]
+$\bm{Y}_2$ を観測した条件での $\bm{Y}_1$ の条件付き分布は
+\begin{align*}
+  \bm{Y}_1 \mid \bm{Y}_2 = \bm{y}_2
+  &\;\sim\; \mvn\!\left(\bm{\theta}_1 + \Sigma_{12}\Sigma_{22}^{-1}(\bm{y}_2 - \bm{\theta}_2),\;\;
+    \Sigma_{11} - \Sigma_{12}\Sigma_{22}^{-1}\Sigma_{21}\right).
+\end{align*}
+\end{thmbox}
+
+\begin{derivbox}{条件付き分布の導出（概略）}
+$\bm{Y}_1$ と $\bm{Y}_2$ の同時密度から，$\bm{Y}_2 = \bm{y}_2$ を固定して $\bm{Y}_1$ についての条件付き密度を求める．
+
+補助変数 $\bm{Z} = \bm{Y}_1 - \Sigma_{12}\Sigma_{22}^{-1}\bm{Y}_2$ を考えると，
+$\bm{Z}$ と $\bm{Y}_2$ が独立で $\bm{Z} \sim \mvn(\bm{\theta}_1 - \Sigma_{12}\Sigma_{22}^{-1}\bm{\theta}_2,\; \Sigma_{11} - \Sigma_{12}\Sigma_{22}^{-1}\Sigma_{21})$ であることが示せる．
+
+したがって $\bm{Y}_2 = \bm{y}_2$ で条件付けると $\bm{Z}$ の分布はそのままで，
+\[
+  \bm{Y}_1 = \bm{Z} + \Sigma_{12}\Sigma_{22}^{-1}\bm{y}_2
+\]
+より上の結論が得られる．
+\end{derivbox}
+
+\subsection{欠損値のギブスサンプリング}
+
+欠損値のサンプリングをギブスサンプラーに組み込む：
+
+\begin{algobox}{欠損値を含むギブスサンプラー}
+各イテレーションで以下を繰り返す：
+\begin{enumerate}
+  \item \textbf{欠損値のサンプリング：}各 $i$ について欠損成分 $\bm{y}_{i,\text{miss}}$ を条件付き分布
+        \[
+          \bm{y}_{i,\text{miss}} \mid \bm{y}_{i,\text{obs}},\, \bm{\theta},\, \Sigma
+          \;\sim\; \mvn(\cdots)
+        \]
+        からサンプリングする（上の条件付き MVN 公式を使う）．
+
+  \item \textbf{$\bm{\theta}$ のサンプリング：}完全なデータ $\bm{Y}$ で $\bm{\theta} \mid \bm{Y}, \Sigma$ からサンプリング．
+
+  \item \textbf{$\Sigma$ のサンプリング：}$\Sigma \mid \bm{Y}, \bm{\theta}$ からサンプリング．
+\end{enumerate}
+\end{algobox}
+
+\begin{pointbox}
+欠損値のサンプリングは「データ拡大（data augmentation）」と呼ばれる一般的な技法である．
+欠損値が「観測されなかっただけのパラメータ」として扱われ，
+事後分布から直接引き出せるため，推論の不確実性を正しく伝播できる．
+\end{pointbox}
+
+\begin{exbox}{Pima インディアン女性の健康データ}
+Pima インディアン女性 200 名のデータで，
+BMI（$Y_1$）・血糖値（$Y_2$）・糖尿病遺伝因子（$Y_3$）など複数の健康指標が記録されている
+が，いくつかの観測値が欠損している．
+
+\medskip
+上記のギブスサンプラーを使うと，
+欠損値を適切に補完しながら $(\bm{\theta}, \Sigma)$ を推論できる．
+特に「欠損値は MAR（Missing At Random）」という仮定のもとで，
+欠損値の不確実性を込みにした事後分布が得られる（単純な補完よりも推論が正確になる）．
+\end{exbox}
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{thmbox}{第7章のまとめ}
+\begin{enumerate}
+  \item \textbf{多変量正規分布}：$\bm{Y} \sim \mvn(\bm{\theta}, \Sigma)$．密度は $(2\pi)^{-p/2}|\Sigma|^{-1/2}\exp\{-\frac12(\bm{y}-\bm{\theta})^\top\Sigma^{-1}(\bm{y}-\bm{\theta})\}$．
+
+  \item \textbf{$\bm{\theta}$ の事後分布}（$\Sigma$ 既知）：$\bm{\theta}\mid\bm{Y},\Sigma\sim\mvn(\bm{\mu}_n,\Lambda_n)$．
+        精度行列が加算 $\Lambda_n^{-1} = \Lambda_0^{-1} + n\Sigma^{-1}$，
+        事後平均は重み付き平均 $\bm{\mu}_n = \Lambda_n(\Lambda_0^{-1}\bm{\mu}_0 + n\Sigma^{-1}\bar{\bm{y}})$．
+
+  \item \textbf{$\Sigma$ の事後分布}（$\bm{\theta}$ 既知）：$\Sigma\mid\bm{Y},\bm{\theta}\sim\IW(\nu_0+n,(S_0+S_\theta)^{-1})$．
+        自由度に $n$，スケール行列に $S_\theta = \sum(\bm{y}_i-\bm{\theta})(\bm{y}_i-\bm{\theta})^\top$ を加えるだけ．
+
+  \item \textbf{ギブスサンプラー}：$\bm{\theta}$ と $\Sigma$ を交互にサンプリング．
+        MCMC として同時事後分布 $p(\bm{\theta},\Sigma\mid\bm{Y})$ に収束する．
+
+  \item \textbf{欠損値の処理}：MVN の条件付き分布を使い，欠損値をギブスサンプラーに組み込む（データ拡大）．
+\end{enumerate}
+\end{thmbox}
+
+\begin{center}
+\begin{tikzpicture}[node distance=2cm, every node/.style={draw, rounded corners, align=center, minimum width=3cm, minimum height=0.8cm}]
+  \node (theta) {$\bm{\theta}^{(s)} \sim \mvn(\bm{\mu}_n, \Lambda_n)$};
+  \node (sigma) [right=4cm of theta] {$\Sigma^{(s)} \sim \IW(\nu_0+n, (S_0+S_\theta)^{-1})$};
+  \draw[->, thick, blue!60!black] (theta) to[bend left=20] node[above, draw=none, font=\small] {$\bm{\theta}^{(s)}$ を使って $S_\theta$ を更新} (sigma);
+  \draw[->, thick, green!50!black] (sigma) to[bend left=20] node[below, draw=none, font=\small] {$\Sigma^{(s)}$ を使って $\Lambda_n, \bm{\mu}_n$ を更新} (theta);
+\end{tikzpicture}
+\end{center}
+
+\end{document}

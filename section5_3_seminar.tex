@@ -1,0 +1,692 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{pgfplots}
+\usepackage{listings}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween}
+\usetikzlibrary{patterns}
+
+\geometry{margin=25mm}
+\tcbuselibrary{theorems, skins, breakable}
+
+\lstset{
+  language=R,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{gray!10},
+  frame=single,
+  breaklines=true,
+  keywordstyle=\color{blue},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red},
+}
+
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt,
+  breakable
+}
+\newtcolorbox{derivbox}[1]{
+  colback=yellow!6, colframe=yellow!70!black,
+  fonttitle=\bfseries, title={計算補足：#1}, arc=3pt,
+  breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt,
+  breakable
+}
+
+\title{{\large Hoff 第5章} \\[6pt]
+       \textbf{5.3\; Joint Inference for the Mean and Variance} \\[4pt]
+       {\normalsize ゼミ資料（和訳＋計算補足）}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+%===========================================
+\section{問題設定：$\theta$ と $\sigma^2$ の同時推論}
+%===========================================
+
+5.2節では $\sigma^2$ を既知と仮定した．しかし現実には
+\textbf{平均 $\theta$ も分散 $\sigma^2$ も両方未知}である．
+5.3節ではこの状況を扱う．
+
+目標は同時事後分布
+\[
+  p(\theta, \sigma^2 \mid \mathbf{y})
+  \propto p(\mathbf{y} \mid \theta, \sigma^2)\, p(\theta, \sigma^2)
+\]
+を求め，$\theta$ および $\sigma^2$ の両方について推論することである．
+
+%===========================================
+\section{事前分布の設計}
+%===========================================
+
+二つのパラメータの同時事前分布を，条件付き確率の分解
+\[
+  p(\theta, \sigma^2) = p(\theta \mid \sigma^2)\, p(\sigma^2)
+\]
+を使って構成する．
+
+\subsection{$\sigma^2$ の事前分布：逆ガンマ分布}
+
+まずガンマ分布の確率密度関数を確認する．
+
+\begin{defbox}{ガンマ分布 $\mathrm{Gamma}(a, b)$}
+確率変数 $X > 0$ が shape $a > 0$，rate $b > 0$ のガンマ分布に従うとは，密度が
+\[
+  f_X(x) = \frac{b^a}{\Gamma(a)}\, x^{a-1}\, e^{-bx}, \quad x > 0
+\]
+であることを意味する（$\Gamma(a) = \int_0^\infty t^{a-1}e^{-t}dt$ はガンマ関数）．
+平均 $\mathrm{E}[X] = a/b$，最頻値 $= (a-1)/b$（$a \geq 1$ のとき），分散 $= a/b^2$．
+\end{defbox}
+
+\begin{derivbox}{逆ガンマ分布の密度：変数変換による導出}
+$X \sim \mathrm{Gamma}(a, b)$ のとき，$Y = 1/X$ の密度を求める．
+
+\medskip
+\noindent\textbf{変数変換の公式：}
+$Y = g(X) = 1/X$（単調減少）のとき，
+\[
+  f_Y(y) = f_X\!\left(g^{-1}(y)\right) \cdot \left|\frac{d}{dy}g^{-1}(y)\right|.
+\]
+$g^{-1}(y) = 1/y$ なので $\left|\frac{d}{dy}(1/y)\right| = 1/y^2$．したがって，
+\begin{align*}
+  f_Y(y)
+  &= f_X(1/y) \cdot \frac{1}{y^2}
+   = \frac{b^a}{\Gamma(a)}\,(1/y)^{a-1}\,e^{-b/y} \cdot \frac{1}{y^2} \\[4pt]
+  &= \frac{b^a}{\Gamma(a)}\, y^{-(a-1)}\, e^{-b/y} \cdot y^{-2}
+   = \frac{b^a}{\Gamma(a)}\, y^{-a-1}\, e^{-b/y}.
+\end{align*}
+
+\noindent これを\textbf{逆ガンマ分布 $\mathrm{InvGamma}(a, b)$} と呼ぶ．
+\end{derivbox}
+
+\begin{defbox}{逆ガンマ分布 $\mathrm{InvGamma}(a, b)$}
+$Y \sim \mathrm{InvGamma}(a, b)$ の密度：
+\[
+  f_Y(y) = \frac{b^a}{\Gamma(a)}\, y^{-a-1}\, e^{-b/y}, \quad y > 0.
+\]
+\end{defbox}
+
+\begin{derivbox}{逆ガンマ分布のモードと平均}
+
+\noindent\textbf{モード（密度が最大になる点）：}
+
+$\log f_Y(y) = \mathrm{const} + (-a-1)\log y - b/y$ を $y$ で微分してゼロとおく：
+\[
+  \frac{d}{dy}\log f_Y(y) = \frac{-a-1}{y} + \frac{b}{y^2} = 0
+  \quad\Rightarrow\quad
+  (a+1)y = b
+  \quad\Rightarrow\quad
+  \mathrm{mode} = \frac{b}{a+1}.
+\]
+
+\noindent\textbf{平均（$a > 1$ のとき）：}
+
+$\mathrm{E}[Y] = \mathrm{E}[1/X]$ を $X \sim \mathrm{Gamma}(a,b)$ として計算する：
+\begin{align*}
+  \mathrm{E}[1/X]
+  &= \int_0^\infty \frac{1}{x} \cdot \frac{b^a}{\Gamma(a)}\,x^{a-1}\,e^{-bx}\,dx
+   = \frac{b^a}{\Gamma(a)} \int_0^\infty x^{(a-1)-1}\,e^{-bx}\,dx \\[4pt]
+  &= \frac{b^a}{\Gamma(a)} \cdot \frac{\Gamma(a-1)}{b^{a-1}}
+   = \frac{b \cdot \Gamma(a-1)}{\Gamma(a)}
+   = \frac{b}{a-1}.
+  \quad (\Gamma(a) = (a-1)\Gamma(a-1) \text{ を使用})
+\end{align*}
+
+\noindent まとめ（$Y \sim \mathrm{InvGamma}(a,b)$）：
+\[
+  \mathrm{mode}(Y) = \frac{b}{a+1}, \qquad
+  \mathrm{E}[Y] = \frac{b}{a-1} \quad (a > 1).
+\]
+\end{derivbox}
+
+\medskip
+Hoff の表記では $1/\sigma^2 \sim \mathrm{Gamma}(\nu_0/2,\; \nu_0\sigma_0^2/2)$，
+すなわち $\sigma^2 \sim \mathrm{InvGamma}(\nu_0/2,\; \nu_0\sigma_0^2/2)$．
+
+\begin{derivbox}{パラメータ $(\sigma_0^2, \nu_0)$ の意味}
+$a = \nu_0/2$，$b = \nu_0\sigma_0^2/2$ を上の公式に代入する：
+
+\begin{align*}
+  \mathrm{mode}(\sigma^2)
+  &= \frac{\nu_0\sigma_0^2/2}{\nu_0/2 + 1}
+   = \frac{\nu_0\sigma_0^2}{\nu_0 + 2}
+   \;\xrightarrow{\nu_0\to\infty}\; \sigma_0^2, \\[6pt]
+  \mathrm{E}[\sigma^2]
+  &= \frac{\nu_0\sigma_0^2/2}{\nu_0/2 - 1}
+   = \frac{\nu_0\sigma_0^2}{\nu_0 - 2}
+   \;\xrightarrow{\nu_0\to\infty}\; \sigma_0^2. \quad (\nu_0 > 2 \text{ のとき定義})
+\end{align*}
+
+\begin{itemize}
+  \item $\sigma_0^2$：$\nu_0$ が大きいとき $\sigma^2$ の「中心値」に収束する．事前の「代表値」．
+  \item $\nu_0$ が大きい $\Rightarrow$ モード・平均がともに $\sigma_0^2$ に近づき，分布が集中する（事前情報が強い）．
+  \item $\nu_0$ が小さい $\Rightarrow$ 分布が右に広がり，$\sigma^2$ の推定が緩やかになる（事前情報が弱い）．
+\end{itemize}
+\end{derivbox}
+
+\begin{derivbox}{なぜ正規モデルに対して共役か}
+$\theta$ を固定して尤度を $\sigma^2$ の関数として見ると，
+\[
+  p(\mathbf{y} \mid \theta, \sigma^2)
+  \propto (\sigma^2)^{-n/2}\, e^{-\frac{\sum(y_i-\theta)^2}{2\sigma^2}}.
+\]
+これは $\sigma^2$ について $\mathrm{InvGamma}$ の核 $(\sigma^2)^{-a-1}e^{-b/\sigma^2}$ と同じ形をしている
+（$a = n/2 - 1$，$b = \sum(y_i-\theta)^2/2$ に対応）．
+
+逆ガンマ事前分布 $p(\sigma^2) \propto (\sigma^2)^{-\nu_0/2-1} e^{-\nu_0\sigma_0^2/(2\sigma^2)}$ と掛け合わせると，
+\[
+  p(\sigma^2 \mid \mathbf{y})
+  \propto (\sigma^2)^{-(\nu_0/2 + n/2)-1}\, e^{-(\nu_0\sigma_0^2 + \sum(y_i-\theta)^2)/(2\sigma^2)},
+\]
+これもまた逆ガンマ分布（$a$ が $\nu_0/2 + n/2$，$b$ が対応する値に更新）．
+指数型の関数形が一致しているため，事前と事後が同じ族に属する＝\textbf{共役}．
+\end{derivbox}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm, height=5.5cm,
+  domain=0.01:5, samples=300,
+  xmin=0, xmax=5, ymin=0, ymax=1.4,
+  xlabel={$\sigma^2$}, ylabel={密度},
+  legend pos=north east,
+  every axis/.append style={font=\small},
+  title={逆ガンマ分布の形状（$\sigma_0^2=1$，$\nu_0$ を変化）},
+]
+% nu0=1: p(s2) prop (s2)^(-3/2)*exp(-1/(2*s2))
+\addplot[blue, thick] {x^(-1.5)*exp(-1/(2*x))/(sqrt(2*pi))};
+\addlegendentry{$\nu_0=1$}
+% nu0=3: shape a=3/2, rate b=3/2
+\addplot[red, thick] {(3/2)^(3/2)/0.886*x^(-3/2-1)*exp(-(3/2)/x)};
+\addlegendentry{$\nu_0=3$}
+% nu0=10: shape a=5, rate b=5
+\addplot[teal, thick] {5^5/24*x^(-6)*exp(-5/x)};
+\addlegendentry{$\nu_0=10$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection{$\theta$ の条件付き事前分布}
+
+$\sigma^2$ が与えられたもとでの $\theta$ の条件付き事前分布：
+\[
+  \theta \mid \sigma^2 \sim \mathrm{Normal}\!\left(\mu_0,\, \frac{\sigma^2}{\kappa_0}\right).
+\]
+
+$\tau_0^2 = \sigma^2/\kappa_0$ と設定することで，$\theta$ の不確かさが $\sigma^2$ に比例するという
+スケール整合性を持たせている（$\kappa_0$ は「事前の仮想観測数」）．
+
+\bigskip
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lll}
+\toprule
+パラメータ & 記号 & 意味 \\
+\midrule
+事前平均 & $\mu_0$ & $\theta$ に対する事前の予想値 \\
+事前観測数（平均） & $\kappa_0$ & 小さいほど $\mu_0$ への確信が弱い \\
+事前スケール & $\sigma_0^2$ & $\sigma^2$ の事前の中心値 \\
+事前観測数（分散） & $\nu_0$ & 小さいほど $\sigma^2$ への確信が弱い \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\bigskip
+モデル全体をまとめると：
+\begin{align*}
+  \frac{1}{\sigma^2} &\sim \mathrm{Gamma}\!\left(\frac{\nu_0}{2},\, \frac{\nu_0\sigma_0^2}{2}\right), \\[4pt]
+  \theta \mid \sigma^2 &\sim \mathrm{Normal}\!\left(\mu_0,\, \frac{\sigma^2}{\kappa_0}\right), \\[4pt]
+  Y_1, \ldots, Y_n \mid \theta, \sigma^2 &\overset{\mathrm{i.i.d.}}{\sim} \mathrm{Normal}(\theta,\, \sigma^2).
+\end{align*}
+
+
+%===========================================
+\section{事後分布の導出}
+%===========================================
+
+同時事後分布を
+\[
+  p(\theta, \sigma^2 \mid \mathbf{y}) = p(\theta \mid \sigma^2, \mathbf{y})\, p(\sigma^2 \mid \mathbf{y})
+\]
+と分解して，各因子を求める．
+
+\subsection{$\theta$ の条件付き事後分布}
+
+$\sigma^2$ を既知として固定すると，これは 5.2節の設定に帰着する．
+$\tau_0^2 = \sigma^2/\kappa_0$ に対応するので，5.2節の結果より：
+\[
+  \theta \mid \sigma^2, \mathbf{y}
+  \;\sim\; \mathrm{Normal}\!\left(\mu_n,\, \frac{\sigma^2}{\kappa_n}\right),
+\]
+ただし
+\[
+  \kappa_n = \kappa_0 + n, \qquad
+  \mu_n = \frac{\kappa_0\mu_0 + n\bar{y}}{\kappa_n}.
+\]
+
+\subsection{$\sigma^2$ の周辺事後分布：$\theta$ の積分消去}
+
+$p(\sigma^2 \mid \mathbf{y})$ を得るには，同時事後分布から $\theta$ を積分消去する：
+\[
+  p(\sigma^2 \mid \mathbf{y})
+  = \int_{-\infty}^{\infty} p(\theta, \sigma^2 \mid \mathbf{y})\, d\theta.
+\]
+
+\begin{derivbox}{$\theta$ の積分消去（Step by Step）}
+
+\noindent\textbf{Step 1：同時事後分布の指数部分の整理}
+
+\vspace{4pt}
+同時事後分布の核（$\theta, \sigma^2$ 両方に依存する部分）：
+\begin{align*}
+  p(\theta, \sigma^2 \mid \mathbf{y})
+  &\propto (\sigma^2)^{-n/2}\,
+    e^{-\frac{1}{2\sigma^2}\sum(y_i-\theta)^2}
+    \cdot (\sigma^2)^{-1/2}\,
+    e^{-\frac{\kappa_0}{2\sigma^2}(\theta-\mu_0)^2}
+    \cdot (\sigma^2)^{-\nu_0/2-1}\,
+    e^{-\frac{\nu_0\sigma_0^2}{2\sigma^2}} \\[4pt]
+  &= (\sigma^2)^{-(n+1)/2-\nu_0/2-1}\,
+     e^{-\frac{1}{2\sigma^2}\left[\sum(y_i-\theta)^2 + \kappa_0(\theta-\mu_0)^2 + \nu_0\sigma_0^2\right]}.
+\end{align*}
+
+\noindent\textbf{Step 2：$\theta$ の二次式を平方完成}
+
+\vspace{4pt}
+$\theta$ に依存する部分だけ取り出す：
+\begin{align*}
+  Q(\theta)
+  &= \sum(y_i-\theta)^2 + \kappa_0(\theta-\mu_0)^2 \\
+  &= \underbrace{(\kappa_0 + n)}_{\kappa_n}\theta^2
+     - 2\underbrace{(\kappa_0\mu_0 + n\bar{y})}_{\kappa_n\mu_n}\theta
+     + \underbrace{\left(\sum y_i^2 + \kappa_0\mu_0^2\right)}_{C} \\
+  &= \kappa_n(\theta - \mu_n)^2 + \underbrace{\left(C - \kappa_n\mu_n^2\right)}_{SSR_\kappa}.
+\end{align*}
+
+ここで $SSR_\kappa = \sum y_i^2 + \kappa_0\mu_0^2 - \kappa_n\mu_n^2$ とおいた（$\theta$ に依存しない）．
+
+\noindent\textbf{Step 3：$\theta$ についてガウス積分}
+
+\vspace{4pt}
+\begin{align*}
+  p(\sigma^2 \mid \mathbf{y})
+  &\propto (\sigma^2)^{-(n+1)/2-\nu_0/2-1}
+     e^{-\frac{SSR_\kappa + \nu_0\sigma_0^2}{2\sigma^2}}
+     \int_{-\infty}^{\infty}
+       e^{-\frac{\kappa_n(\theta-\mu_n)^2}{2\sigma^2}} d\theta \\[4pt]
+  &= (\sigma^2)^{-(n+1)/2-\nu_0/2-1}
+     e^{-\frac{SSR_\kappa + \nu_0\sigma_0^2}{2\sigma^2}}
+     \cdot \sqrt{\frac{2\pi\sigma^2}{\kappa_n}} \\[4pt]
+  &\propto (\sigma^2)^{-n/2-\nu_0/2-1}
+     e^{-\frac{SSR_\kappa + \nu_0\sigma_0^2}{2\sigma^2}}.
+\end{align*}
+
+これは $1/\sigma^2 \sim \mathrm{Gamma}\!\left(\frac{\nu_n}{2},\, \frac{\nu_n\sigma_n^2}{2}\right)$ の核の形であり，
+$\nu_n = \nu_0 + n$ かつ $\nu_n\sigma_n^2 = \nu_0\sigma_0^2 + SSR_\kappa$
+を与える．
+\end{derivbox}
+
+\begin{derivbox}{$SSR_\kappa$ の整理：$\nu_n\sigma_n^2$ の公式導出}
+
+$SSR_\kappa = \sum y_i^2 + \kappa_0\mu_0^2 - \kappa_n\mu_n^2$ を整理する．
+
+\noindent\textbf{補題（よく使う恒等式）：} $\sum y_i^2 = (n-1)s^2 + n\bar{y}^2$
+
+（$\sum(y_i-\bar{y})^2 = \sum y_i^2 - n\bar{y}^2$ より）
+
+\medskip
+
+$\kappa_n\mu_n^2 = \frac{(\kappa_0\mu_0 + n\bar{y})^2}{\kappa_n}$ に注意して，
+
+\begin{align*}
+  SSR_\kappa
+  &= (n-1)s^2 + n\bar{y}^2 + \kappa_0\mu_0^2
+     - \frac{(\kappa_0\mu_0 + n\bar{y})^2}{\kappa_n}.
+\end{align*}
+
+分母を $\kappa_n$ に揃えて計算：
+\begin{align*}
+  \kappa_n(n\bar{y}^2 + \kappa_0\mu_0^2) - (\kappa_0\mu_0 + n\bar{y})^2.
+\end{align*}
+
+$\kappa_n = \kappa_0 + n$ として展開する：
+\begin{align*}
+  &(\kappa_0+n)(n\bar{y}^2 + \kappa_0\mu_0^2)
+   - (\kappa_0^2\mu_0^2 + 2\kappa_0 n\mu_0\bar{y} + n^2\bar{y}^2) \\
+  &= \kappa_0 n\bar{y}^2 + n^2\bar{y}^2
+     + \kappa_0^2\mu_0^2 + \kappa_0 n\mu_0^2
+     - \kappa_0^2\mu_0^2 - 2\kappa_0 n\mu_0\bar{y} - n^2\bar{y}^2 \\
+  &= \kappa_0 n(\bar{y}^2 - 2\mu_0\bar{y} + \mu_0^2)
+   = \kappa_0 n(\bar{y} - \mu_0)^2.
+\end{align*}
+
+したがって：
+\[
+  SSR_\kappa = (n-1)s^2 + \frac{\kappa_0 n}{\kappa_n}(\bar{y} - \mu_0)^2.
+\]
+
+これを $\nu_n\sigma_n^2$ に代入：
+\[
+  \boxed{\nu_n\sigma_n^2
+  = \nu_0\sigma_0^2 + (n-1)s^2 + \frac{\kappa_0 n}{\kappa_n}(\bar{y} - \mu_0)^2.}
+\]
+\end{derivbox}
+
+\begin{thmbox}{事後分布（$\theta$ と $\sigma^2$ の同時推論）}
+\[
+  \theta \mid \sigma^2, \mathbf{y}
+  \;\sim\; \mathrm{Normal}\!\left(\mu_n,\, \frac{\sigma^2}{\kappa_n}\right),
+  \qquad
+  \frac{1}{\sigma^2} \mid \mathbf{y}
+  \;\sim\; \mathrm{Gamma}\!\left(\frac{\nu_n}{2},\, \frac{\nu_n\sigma_n^2}{2}\right),
+\]
+ただし
+\begin{align*}
+  \kappa_n &= \kappa_0 + n, \\
+  \mu_n &= \frac{\kappa_0\mu_0 + n\bar{y}}{\kappa_n}, \\
+  \nu_n &= \nu_0 + n, \\
+  \nu_n\sigma_n^2 &= \nu_0\sigma_0^2 + (n-1)s^2
+    + \frac{\kappa_0 n}{\kappa_n}(\bar{y} - \mu_0)^2.
+\end{align*}
+\end{thmbox}
+
+\subsection{$\nu_n\sigma_n^2$ の3項の意味}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lp{8cm}}
+\toprule
+\textbf{項} & \textbf{意味} \\
+\midrule
+$\nu_0\sigma_0^2$ & 事前の「平方和」（prior sum of squares）：\\
+& $\nu_0$ 個の仮想観測が$\sigma_0^2$まわりにばらついていた，という事前情報 \\[4pt]
+$(n-1)s^2$ & データの平方和（sample sum of squares）：\\
+& 実際の $n$ 個の観測からの $\theta$ まわりのばらつき \\[4pt]
+$\dfrac{\kappa_0 n}{\kappa_n}(\bar{y}-\mu_0)^2$ & 事前平均とデータ平均のズレによる「補正項」：\\
+& $\bar{y}$ と $\mu_0$ が離れているほど，$\sigma^2$ の事後推定が大きくなる \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+%===========================================
+\section{モンテカルロサンプリング}
+%===========================================
+
+$\theta$ の\textbf{周辺}事後分布 $p(\theta \mid \mathbf{y})$ は，
+$p(\theta \mid \sigma^2, \mathbf{y})$ と $p(\sigma^2 \mid \mathbf{y})$ の積を $\sigma^2$ について積分したものだが，
+解析的に計算するのは煩雑である．そこで\textbf{モンテカルロ法}を用いる．
+
+\begin{thmbox}{逐次サンプリング（Ancestral Sampling）}
+次の手順を $S$ 回繰り返す（$s = 1, \ldots, S$）：
+\begin{enumerate}
+  \item $\sigma^{2(s)} \sim \mathrm{InvGamma}\!\left(\dfrac{\nu_n}{2},\, \dfrac{\nu_n\sigma_n^2}{2}\right)$
+        \hfill（$1/\sigma^{2(s)} \sim \mathrm{Gamma}(\nu_n/2,\, \nu_n\sigma_n^2/2)$ とサンプル）
+  \item $\theta^{(s)} \sim \mathrm{Normal}\!\left(\mu_n,\, \dfrac{\sigma^{2(s)}}{\kappa_n}\right)$
+\end{enumerate}
+
+得られた $\{(\theta^{(1)}, \sigma^{2(1)}), \ldots, (\theta^{(S)}, \sigma^{2(S)})\}$ は
+同時事後分布 $p(\theta, \sigma^2 \mid \mathbf{y})$ からの独立なサンプルである．
+\end{thmbox}
+
+\begin{derivbox}{なぜこれが周辺分布のサンプルになるのか}
+
+$(\theta^{(s)}, \sigma^{2(s)})$ の同時分布を確認する：
+
+\medskip
+\noindent Step 1 により $\sigma^{2(s)} \sim p(\sigma^2 \mid \mathbf{y})$.
+
+\noindent Step 2 により $\theta^{(s)} \mid \sigma^{2(s)} \sim p(\theta \mid \sigma^{2(s)}, \mathbf{y})$.
+
+\medskip
+これは「$(\theta, \sigma^2)$ を $p(\theta, \sigma^2 \mid \mathbf{y})$ からサンプルする」ことと全く同じである：
+\[
+  p(\theta^{(s)}, \sigma^{2(s)})
+  = p(\theta^{(s)} \mid \sigma^{2(s)}, \mathbf{y})\, p(\sigma^{2(s)} \mid \mathbf{y})
+  = p(\theta^{(s)}, \sigma^{2(s)} \mid \mathbf{y}).
+\]
+
+そのため，$\theta^{(s)}$ の（$\sigma^{2(s)}$ を問わない）\textbf{周辺分布}は：
+\[
+  p(\theta^{(s)}) = \int p(\theta^{(s)}, \sigma^{2(s)} \mid \mathbf{y})\, d\sigma^{2(s)}
+  = p(\theta^{(s)} \mid \mathbf{y}).
+\]
+
+直感：各 $\theta^{(s)}$ は「異なる $\sigma^{2(s)}$ のもとで生成されている」．
+集めると，その生成に使った $\sigma^{2(s)}$ の分布（$= p(\sigma^2|\mathbf{y})$）にわたって平均しているので，
+結果的に $\sigma^2$ を積分消去したことになる．
+\end{derivbox}
+
+\noindent R コードでは 3 行で実装できる：
+
+\begin{lstlisting}
+# 事後パラメータを設定後...
+phi.post  <- rgamma(S, shape = nun/2, rate = nun*s2n/2)   # 精度のサンプル
+s2.post   <- 1/phi.post                                   # 分散に変換
+theta.post <- rnorm(S, mean = mun, sd = sqrt(s2.post/kn)) # 平均のサンプル
+\end{lstlisting}
+
+\begin{lstlisting}
+# 95% 信用区間（周辺）
+quantile(theta.post, c(0.025, 0.975))
+quantile(s2.post, c(0.025, 0.975))
+\end{lstlisting}
+
+
+%===========================================
+\section{無情報事前分布との接続：$t$ 分布の出現}
+%===========================================
+
+\subsection{無情報極限}
+
+$\kappa_0, \nu_0 \to 0$（事前情報をゼロに近づける）とすると：
+\begin{align*}
+  \mu_n &\to \bar{y}, \\
+  \kappa_n &\to n, \\
+  \nu_n &\to n, \\
+  \nu_n\sigma_n^2 &\to (n-1)s^2,
+  \quad \text{すなわち} \quad
+  \sigma_n^2 \to \frac{(n-1)s^2}{n}.
+\end{align*}
+
+\subsection{$\theta$ の周辺事後分布は $t$ 分布}
+
+\begin{derivbox}{周辺事後分布の計算（ガンマ積分）}
+$\theta|\mathbf{y}$ の周辺事後分布は，$\sigma^2$ を積分消去することで得られる：
+\[
+  p(\theta \mid \mathbf{y})
+  = \int_0^\infty p(\theta \mid \sigma^2, \mathbf{y})\, p(\sigma^2 \mid \mathbf{y})\, d\sigma^2.
+\]
+
+$\phi = 1/\sigma^2$ とおくと（$\phi \mid \mathbf{y} \sim \mathrm{Gamma}(\nu_n/2, \nu_n\sigma_n^2/2)$）：
+\begin{align*}
+  p(\theta \mid \mathbf{y})
+  &\propto \int_0^\infty \phi^{1/2}\, e^{-\frac{\kappa_n\phi}{2}(\theta-\mu_n)^2}
+    \cdot \phi^{\nu_n/2-1}\, e^{-\frac{\nu_n\sigma_n^2}{2}\phi}\, d\phi \\
+  &= \int_0^\infty \phi^{(\nu_n+1)/2-1}\,
+     e^{-\frac{\phi}{2}\left[\kappa_n(\theta-\mu_n)^2 + \nu_n\sigma_n^2\right]}\, d\phi.
+\end{align*}
+
+これはガンマ関数の積分公式
+$\displaystyle\int_0^\infty \phi^{a-1} e^{-b\phi}\, d\phi = \Gamma(a)/b^a$
+を $a = (\nu_n+1)/2$，$b = \left[\kappa_n(\theta-\mu_n)^2 + \nu_n\sigma_n^2\right]/2$ で適用する：
+\begin{align*}
+  p(\theta \mid \mathbf{y})
+  &\propto \left(\kappa_n(\theta-\mu_n)^2 + \nu_n\sigma_n^2\right)^{-(\nu_n+1)/2} \\
+  &= \left(\nu_n\sigma_n^2\right)^{-(\nu_n+1)/2}
+     \left(1 + \frac{\kappa_n(\theta-\mu_n)^2}{\nu_n\sigma_n^2}\right)^{-(\nu_n+1)/2} \\
+  &\propto \left(1 + \frac{1}{\nu_n}
+     \left(\frac{\theta-\mu_n}{\sqrt{\sigma_n^2/\kappa_n}}\right)^2
+    \right)^{-(\nu_n+1)/2}.
+\end{align*}
+
+これは自由度 $\nu_n$，位置 $\mu_n$，スケール $\sqrt{\sigma_n^2/\kappa_n}$ の $t$ 分布の核である．
+\end{derivbox}
+
+\begin{thmbox}{$\theta$ の周辺事後分布（$t$ 分布）}
+\[
+  \frac{\theta - \mu_n}{\sqrt{\sigma_n^2/\kappa_n}} \;\Bigg|\; \mathbf{y}
+  \;\sim\; t_{\nu_n}.
+\]
+無情報事前分布の極限（$\kappa_0, \nu_0 \to 0$）では
+$\mu_n \to \bar{y}$，$\nu_n \to n$，$\sigma_n^2/\kappa_n \to s^2/n$ となり，
+\[
+  \frac{\theta - \bar{y}}{s/\sqrt{n}} \;\Bigg|\; \mathbf{y}
+  \;\sim\; t_{n-1}.
+\]
+\end{thmbox}
+
+これは頻度論の $t$ 検定と\textbf{数式として同じ形}をしているが，解釈が異なる：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lp{5cm}p{5.5cm}}
+\toprule
+ & \textbf{式} & \textbf{解釈} \\
+\midrule
+頻度論 &
+  $\dfrac{\bar{Y} - \theta}{s/\sqrt{n}} \sim t_{n-1}$ &
+  $\theta$ は固定定数，$\bar{Y}$ がデータ間でランダムに変動する \\[8pt]
+ベイズ（無情報） &
+  $\dfrac{\theta - \bar{y}}{s/\sqrt{n}} \sim t_{n-1}$ &
+  $\bar{y}$ は固定観測値，$\theta$ が事後分布に従いランダムに変動する \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{pointbox}
+95\% 信頼区間（頻度論）と 95\% 信用区間（ベイズ，無情報事前）は
+\textbf{数値的に一致}するが意味が異なる：
+\begin{itemize}
+  \item 信頼区間：「データを繰り返し取り直すと 95\% の割合で $\theta$ を含む区間」
+  \item 信用区間：「観測されたデータのもとで $\theta$ がこの区間にいる確率が 95\%」（直接的な確率文）
+\end{itemize}
+\end{pointbox}
+
+
+%===========================================
+\section{例：ユスリカの翅長データ（$\sigma^2$ 未知）}
+%===========================================
+
+\begin{exbox}{5.2節の再訪（$\sigma^2$ を未知として同時推論）}
+5.2節と同じデータ：$n=9$，$\bar{y} = 1.804$，$s^2 = 0.017$
+
+\medskip
+事前分布のパラメータを次のように設定する：
+\[
+  \mu_0 = 1.9, \quad \kappa_0 = 1, \quad \sigma_0^2 = 0.01, \quad \nu_0 = 1.
+\]
+\begin{itemize}
+  \item $\kappa_0 = 1$：事前情報は「1 個の仮想観測」程度（弱い）
+  \item $\nu_0 = 1$，$\sigma_0^2 = 0.01$：$\sigma^2$ は $0.01$ 程度と予想するが不確か
+\end{itemize}
+\end{exbox}
+
+\begin{derivbox}{事後パラメータの数値計算}
+\begin{align*}
+  \kappa_n &= 1 + 9 = 10, \\[4pt]
+  \mu_n &= \frac{1 \times 1.9 + 9 \times 1.804}{10} = \frac{18.136}{10} = 1.814, \\[4pt]
+  \nu_n &= 1 + 9 = 10, \\[4pt]
+  \nu_n\sigma_n^2
+  &= \underbrace{1 \times 0.01}_{\nu_0\sigma_0^2}
+   + \underbrace{8 \times 0.017}_{(n-1)s^2}
+   + \underbrace{\frac{1 \times 9}{10}(1.804 - 1.9)^2}_{\text{補正項}} \\
+  &= 0.010 + 0.136 + 0.9 \times 0.009216 \\
+  &= 0.010 + 0.136 + 0.0083 = 0.154, \\[4pt]
+  \sigma_n^2 &= 0.154/10 = 0.0154.
+\end{align*}
+
+周辺事後分布：
+$\dfrac{\theta - 1.814}{\sqrt{0.0154/10}} \mid \mathbf{y} \sim t_{10}$，
+すなわち $\dfrac{\theta - 1.814}{0.0392} \mid \mathbf{y} \sim t_{10}$.
+
+95\% 信用区間（$t_{10}$ の 2.5\% 点 $\approx \pm 2.228$）：
+\[
+  1.814 \pm 2.228 \times 0.0392 \approx (1.727,\; 1.901).
+\]
+
+\noindent\textbf{5.2節（$\sigma^2 = s^2$ 既知と仮定）の 95\% 区間 $(1.72,\; 1.89)$ との比較：}
+\begin{itemize}
+  \item $\sigma^2$ 未知の方が区間が少し広い（$\sigma^2$ の不確かさ分）
+  \item ただし $n=9$ と小さいわりには差は小さい（$\kappa_0, \nu_0$ が小さいため）
+\end{itemize}
+\end{derivbox}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=6cm,
+  domain=1.5:2.1, samples=400,
+  xmin=1.5, xmax=2.1, ymin=0, ymax=12,
+  xlabel={$\theta$（翅長の母平均，mm）},
+  ylabel={密度},
+  legend pos=north east,
+  every axis/.append style={font=\small},
+]
+% t_{10}(1.814, 0.0154/10): scale = sqrt(0.0154/10) = 0.0392
+% t density: C*(1 + ((x-mu)/s)^2 / nu)^(-(nu+1)/2)
+% C = Gamma(5.5)/(sqrt(10*pi)*Gamma(5)) = 6.5625/(24*sqrt(10*pi)) approx 0.4869
+% Using nu=10, mu=1.814, s=0.0392
+\addplot[red, thick]
+  {0.4869/0.0392 * (1 + ((x-1.814)/0.0392)^2/10)^(-5.5)};
+\addlegendentry{$t_{10}(1.814, 0.0392^2)$（$\sigma^2$ 未知の事後）}
+% Normal(1.805, 0.002): sigma = sqrt(0.002) = 0.0447
+\addplot[blue, thick, dashed]
+  {1/(0.0447*sqrt(2*pi))*exp(-((x-1.805)^2)/(2*0.002))};
+\addlegendentry{$\mathrm{Normal}(1.805, 0.002)$（5.2節：$\sigma^2=0.017$ 既知）}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\noindent $\sigma^2$ 未知の事後分布（$t$ 分布）は，既知の場合（正規分布）よりも裾が重く，
+$\sigma^2$ の不確かさが $\theta$ の推論に伝播していることが見てとれる．
+
+
+%===========================================
+\section{まとめ}
+%===========================================
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lp{9.5cm}}
+\toprule
+\textbf{項目} & \textbf{内容} \\
+\midrule
+事前分布 &
+  $p(\theta, \sigma^2) = p(\theta|\sigma^2) \cdot p(\sigma^2)$ に分解．\\
+  & $1/\sigma^2 \sim \text{Gamma}(\nu_0/2, \nu_0\sigma_0^2/2)$，
+    $\theta|\sigma^2 \sim N(\mu_0, \sigma^2/\kappa_0)$ \\
+共役性 &
+  事後分布も同じ形（正規-逆ガンマ族）に留まる \\
+$\sigma_n^2$ の公式 &
+  3項の和：事前平方和 $+$ データ平方和 $+$ ズレのペナルティ \\
+MC サンプリング &
+  $\sigma^2 \to \theta$ の順にサンプルするだけで周辺分布が得られる \\
+無情報極限 &
+  $\kappa_0, \nu_0 \to 0$ で頻度論の $t_{n-1}$ 検定と数値的に一致 \\
+$\sigma^2$ 未知の効果 &
+  $\sigma^2$ の不確かさが裾の重さ（自由度 $\nu_n$）として伝播する \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}

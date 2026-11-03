@@ -1,0 +1,446 @@
+\documentclass[lualatex,ja=standard,a4paper,12pt]{bxjsarticle}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween}
+\usetikzlibrary{patterns}
+
+
+\geometry{margin=25mm}
+
+\tcbuselibrary{theorems, skins, breakable}
+
+% ---- カラーボックス定義 ----
+\newtcolorbox{defbox}[1]{
+  colback=blue!5, colframe=blue!60!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt
+}
+\newtcolorbox{thmbox}[1]{
+  colback=green!5, colframe=green!50!black,
+  fonttitle=\bfseries, title={#1}, arc=3pt
+}
+\newtcolorbox{derivbox}[1]{
+  colback=yellow!6, colframe=yellow!70!black,
+  fonttitle=\bfseries, title={計算補足：#1}, arc=3pt,
+  breakable
+}
+\newtcolorbox{pointbox}{
+  colback=orange!8, colframe=orange!70!black,
+  fonttitle=\bfseries, title={ポイント}, arc=3pt
+}
+\newtcolorbox{exbox}[1]{
+  colback=gray!6, colframe=gray!50,
+  fonttitle=\bfseries, title={例：#1}, arc=3pt,
+  breakable
+}
+
+\title{{\large Hoff 第5章} \\[6pt]
+       \textbf{5.1\; The Normal Model} \\[4pt]
+       {\normalsize ゼミ資料（和訳＋計算補足）}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ===========================
+\section{正規分布の定義}
+% ===========================
+
+\begin{defbox}{正規分布 $\mathrm{Normal}(\theta, \sigma^2)$}
+確率変数 $Y$ が平均 $\theta$，分散 $\sigma^2$ の\textbf{正規分布}に従うとは，
+その確率密度関数が
+\[
+  p(y \mid \theta, \sigma^2)
+  = \frac{1}{\sqrt{2\pi\sigma^2}}\,
+    \exp\!\left(-\frac{1}{2}\left(\frac{y - \theta}{\sigma}\right)^2\right),
+  \qquad y \in \mathbb{R}
+\]
+で与えられることを意味する．記法は $Y \sim \mathrm{Normal}(\theta,\, \sigma^2)$．
+\end{defbox}
+
+\begin{derivbox}{密度の規格化}
+上の密度が$\int_{-\infty}^{\infty} p(y) \, dy = 1$ を満たすことを確認する．
+
+$z = (y - \theta)/\sigma$ と置換すると $dy = \sigma \, dz$ なので，
+\[
+  \int_{-\infty}^{\infty}
+    \frac{1}{\sqrt{2\pi\sigma^2}}\, e^{-\frac{1}{2}\left(\frac{y-\theta}{\sigma}\right)^2} dy
+  = \frac{1}{\sqrt{2\pi}}
+    \int_{-\infty}^{\infty} e^{-z^2/2} dz.
+\]
+
+ガウス積分 $I = \int_{-\infty}^{\infty} e^{-z^2/2} dz$ を計算する．
+$I^2$ を極座標で評価する：
+\begin{align*}
+  I^2
+  &= \int_{-\infty}^{\infty}\int_{-\infty}^{\infty} e^{-(z_1^2+z_2^2)/2}\,dz_1\,dz_2 \\
+  &= \int_0^{2\pi}\int_0^{\infty} e^{-r^2/2}\, r\,dr\,d\theta
+   = 2\pi \int_0^{\infty} r\, e^{-r^2/2}\,dr.
+\end{align*}
+$u = r^2/2$ と置換すると $du = r\,dr$ なので，
+\[
+  I^2 = 2\pi \int_0^{\infty} e^{-u}\,du = 2\pi.
+\]
+よって $I = \sqrt{2\pi}$ となり，
+$\dfrac{1}{\sqrt{2\pi}} \cdot \sqrt{2\pi} = 1$．\hfill $\square$
+\end{derivbox}
+
+\bigskip
+
+\begin{derivbox}{平均と分散の確認}
+$Z \sim \mathrm{Normal}(0,1)$（標準正規）とする（$y = \theta + \sigma z$）．
+
+\medskip
+\noindent\textbf{平均：} $f(z) = ze^{-z^2/2}$ は奇関数なので
+\[
+  \mathrm{E}[Z] = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty} z\,e^{-z^2/2}\,dz = 0.
+\]
+よって $\mathrm{E}[Y] = \mathrm{E}[\theta + \sigma Z] = \theta$．
+
+\medskip
+\noindent\textbf{分散：} 部分積分（$u = z,\; dv = ze^{-z^2/2}dz$ とする）を使う：
+\[
+  \mathrm{Var}(Z) = \mathrm{E}[Z^2]
+  = \frac{1}{\sqrt{2\pi}}\int_{-\infty}^{\infty} z^2\,e^{-z^2/2}\,dz.
+\]
+$u = z,\; v' = ze^{-z^2/2}$ とおくと $v = -e^{-z^2/2}$ なので，
+\[
+  \int_{-\infty}^{\infty} z^2 e^{-z^2/2}\,dz
+  = \Big[-ze^{-z^2/2}\Big]_{-\infty}^{\infty}
+  + \int_{-\infty}^{\infty} e^{-z^2/2}\,dz
+  = 0 + \sqrt{2\pi}.
+\]
+よって $\mathrm{Var}(Z) = 1$ となり，$\mathrm{Var}(Y) = \sigma^2 \mathrm{Var}(Z) = \sigma^2$．\hfill $\square$
+\end{derivbox}
+
+
+% ===========================
+\section{正規分布の性質（4つ）}
+% ===========================
+
+\noindent 正規分布には次の4つの重要な性質がある．
+
+\subsection{性質1：対称性とモード}
+
+\begin{thmbox}{性質1}
+$\theta$ は正規分布の\textbf{平均・中央値・最頻値（モード）がすべて一致}する値である．
+\end{thmbox}
+
+\begin{derivbox}{モードの確認}
+密度 $p(y) \propto \exp\!\left(-\frac{(y-\theta)^2}{2\sigma^2}\right)$ の最大値を求める．
+指数部分 $-(y-\theta)^2/(2\sigma^2)$ は $y = \theta$ のとき最大（$=0$）になる．
+したがって $\mathrm{mode} = \theta$．
+
+また $p(y)$ は $y = \theta$ を軸とした対称関数なので，中央値も $\theta$．
+\end{derivbox}
+
+\subsection{性質2：95\% ルール}
+
+\begin{thmbox}{性質2}
+正規分布の確率の約 95\% は，平均 $\theta$ から $2\sigma$ 以内の区間
+$[\theta - 2\sigma,\, \theta + 2\sigma]$ に集中している．
+\end{thmbox}
+
+\begin{derivbox}{95\% ルールの定量化}
+$Z \sim \mathrm{Normal}(0,1)$ のとき，
+\[
+  P(-z^* \leq Z \leq z^*) = 2\Phi(z^*) - 1
+\]
+ここで $\Phi$ は標準正規の累積分布関数．
+
+$z^* = 1.96$ のとき $\Phi(1.96) \approx 0.975$ なので，
+\[
+  P(-1.96 \leq Z \leq 1.96) = 2 \times 0.975 - 1 = 0.95.
+\]
+また $z^* = 2$ のとき $\Phi(2) \approx 0.9772$ なので，
+\[
+  P(-2 \leq Z \leq 2) \approx 2 \times 0.9772 - 1 = 0.9544.
+\]
+元の変数 $Y = \theta + \sigma Z$ に戻すと，
+\[
+  P(\theta - 1.96\sigma \leq Y \leq \theta + 1.96\sigma) = 0.95.
+\]
+「$2\sigma$ 以内」という言い方は $z^*=2$ の近似（誤差 $< 0.5\%$）であり，
+実用上は十分な精度である．
+\end{derivbox}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm, height=6cm,
+  domain=-4:4, samples=300,
+  xmin=-4, xmax=4, ymin=0, ymax=0.45,
+  xlabel={$(y-\theta)/\sigma$}, ylabel={密度},
+  every axis/.append style={font=\small},
+  xtick={-1.96,0,1.96},
+  xticklabels={$-1.96$,$0$,$1.96$},
+]
+\addplot[name path=f, blue!70!black, thick]
+  {1/(1*sqrt(2*pi))*exp(-((x-0)^2)/(2*1^2))};
+\path[name path=axis] (axis cs:-1.96,0) -- (axis cs:1.96,0);
+\addplot[fill=blue!20, fill opacity=0.6]
+  fill between[of=f and axis, soft clip={domain=-1.96:1.96}];
+\node at (axis cs:0,0.18) {\small 95\%};
+\draw[dashed, gray] (axis cs:-1.96,0) -- (axis cs:-1.96,{1/(sqrt(2*pi))*exp(-1.96^2/2)});
+\draw[dashed, gray] (axis cs:1.96,0) -- (axis cs:1.96,{1/(sqrt(2*pi))*exp(-1.96^2/2)});
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection{性質3：線形結合の正規性}
+
+% ---- MGF 導入ボックス ----
+\begin{defbox}{モーメント母関数（Moment Generating Function, MGF）}
+確率変数 $W$ の\textbf{モーメント母関数（MGF）}を
+\[
+  M_W(t) = \mathrm{E}[e^{tW}], \qquad t \in \mathbb{R}
+\]
+と定義する（$t=0$ 付近で有限値を取ると仮定する）．
+
+\medskip
+\noindent\textbf{なぜ「モーメント」母関数と呼ぶのか？}
+
+$e^{tW}$ をテイラー展開すると
+\[
+  e^{tW} = 1 + tW + \frac{t^2}{2!}W^2 + \frac{t^3}{3!}W^3 + \cdots
+\]
+両辺の期待値を取ると
+\[
+  M_W(t) = 1 + t\,\mathrm{E}[W] + \frac{t^2}{2!}\,\mathrm{E}[W^2] + \frac{t^3}{3!}\,\mathrm{E}[W^3] + \cdots
+\]
+$t$ に関して $k$ 回微分して $t=0$ を代入すると\textbf{$k$ 次モーメント}が取り出せる：
+\[
+  \frac{d^k}{dt^k} M_W(t)\bigg|_{t=0} = \mathrm{E}[W^k].
+\]
+たとえば
+\begin{align*}
+  M_W'(0) &= \mathrm{E}[W] \quad (\text{平均}), \\
+  M_W''(0) &= \mathrm{E}[W^2] \quad \Rightarrow\quad \mathrm{Var}(W) = M_W''(0) - (M_W'(0))^2.
+\end{align*}
+
+\medskip
+\noindent\textbf{MGF の最も重要な性質：}
+\begin{enumerate}
+  \item \textbf{分布の一意性：} 同じ MGF を持つ分布は同一である（$t=0$ 近傍で MGF が存在する限り）．
+        つまり「$W$ の MGF が正規分布の MGF と一致 $\Rightarrow$ $W$ は正規分布に従う」と言える．
+
+  \item \textbf{独立な変数の和：} $X, Y$ が独立なとき，
+        \[
+          M_{X+Y}(t) = M_X(t) \cdot M_Y(t).
+        \]
+        \textit{理由：} $\mathrm{E}[e^{t(X+Y)}] = \mathrm{E}[e^{tX}]\cdot\mathrm{E}[e^{tY}]$
+        （独立性から期待値が分離できる）．
+
+  \item \textbf{スカラー倍：} $M_{aX}(t) = \mathrm{E}[e^{t(aX)}] = \mathrm{E}[e^{(at)X}] = M_X(at)$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{直感：} MGF は「確率分布のラプラス変換」であり，
+分布の形を（平均・分散だけでなく）すべての高次モーメントを含めて一意に特徴づける指紋のようなもの．
+\end{defbox}
+
+\begin{thmbox}{性質3（線形安定性）}
+$X \sim \mathrm{Normal}(\mu, \tau^2)$ と $Y \sim \mathrm{Normal}(\theta, \sigma^2)$ が互いに独立なら，
+任意の実数 $a, b$ に対して
+\[
+  aX + bY \;\sim\; \mathrm{Normal}(a\mu + b\theta,\; a^2\tau^2 + b^2\sigma^2).
+\]
+\end{thmbox}
+
+\begin{derivbox}{モーメント母関数による証明}
+確率変数 $W$ の\textbf{モーメント母関数（MGF）}を $M_W(t) = \mathrm{E}[e^{tW}]$ で定義する．
+
+\medskip
+\noindent\textbf{Step 1：正規分布の MGF．}
+$X \sim \mathrm{Normal}(\mu, \tau^2)$ のとき，
+\begin{align*}
+  M_X(t)
+  &= \mathrm{E}[e^{tX}]
+   = \int_{-\infty}^{\infty}
+       \frac{1}{\sqrt{2\pi\tau^2}}\,
+       e^{tx} \cdot e^{-\frac{(x-\mu)^2}{2\tau^2}}\,dx.
+\end{align*}
+指数部分をまとめる：
+\begin{align*}
+  tx - \frac{(x-\mu)^2}{2\tau^2}
+  &= -\frac{1}{2\tau^2}\left[(x-\mu)^2 - 2\tau^2 tx\right] \\
+  &= -\frac{1}{2\tau^2}\left[x^2 - 2(\mu + \tau^2 t)x + \mu^2\right] \\
+  &= -\frac{(x - (\mu + \tau^2 t))^2}{2\tau^2} + \mu t + \frac{\tau^2 t^2}{2}.
+\end{align*}
+したがって，
+\[
+  M_X(t)
+  = e^{\mu t + \frac{\tau^2 t^2}{2}}
+    \underbrace{
+      \int_{-\infty}^{\infty} \frac{1}{\sqrt{2\pi\tau^2}}\,
+      e^{-\frac{(x-(\mu+\tau^2 t))^2}{2\tau^2}}\,dx
+    }_{=\;1}
+  = \exp\!\left(\mu t + \frac{\tau^2 t^2}{2}\right).
+\]
+
+\medskip
+\noindent\textbf{Step 2：線形結合の MGF．}
+$X, Y$ が独立なので，
+\begin{align*}
+  M_{aX+bY}(t)
+  &= \mathrm{E}[e^{t(aX+bY)}]
+   = \mathrm{E}[e^{(at)X}] \cdot \mathrm{E}[e^{(bt)Y}]
+   = M_X(at) \cdot M_Y(bt) \\
+  &= \exp\!\left(\mu(at) + \frac{\tau^2(at)^2}{2}\right)
+     \cdot
+     \exp\!\left(\theta(bt) + \frac{\sigma^2(bt)^2}{2}\right) \\
+  &= \exp\!\left((a\mu + b\theta)t + \frac{(a^2\tau^2 + b^2\sigma^2)t^2}{2}\right).
+\end{align*}
+これは $\mathrm{Normal}(a\mu + b\theta,\; a^2\tau^2 + b^2\sigma^2)$ の MGF に他ならない．
+MGF が分布を一意に決定するので，証明完了．\hfill $\square$
+
+\medskip
+\noindent\textbf{重要な特殊ケース（$a = b = 1/n$，$X_1, \ldots, X_n$ i.i.d.）：}
+\[
+  \bar{X} = \frac{1}{n}\sum_{i=1}^n X_i
+  \;\sim\; \mathrm{Normal}\!\left(\theta,\, \frac{\sigma^2}{n}\right).
+\]
+\end{derivbox}
+
+\subsection{性質4：R での注意}
+
+\begin{pointbox}
+R の \texttt{dnorm}/\texttt{rnorm} 等の関数は，第2引数に\textbf{標準偏差 $\sigma$}（分散 $\sigma^2$ ではない）
+を取る．例えば $Y \sim \mathrm{Normal}(\theta, \sigma^2)$ のサンプルは
+\begin{verbatim}
+  y <- rnorm(n, mean = theta, sd = sigma)   # sigma, not sigma^2
+\end{verbatim}
+で生成する．分散 $\sigma^2$ しかわからない場合は \texttt{sd = sqrt(sigma2)} とする．
+\end{pointbox}
+
+
+% ===========================
+\section{なぜ正規分布が重要か：加法モデルと中心極限定理}
+% ===========================
+
+実際のデータに正規分布が頻繁に現れる理由を考える．
+
+多くの観測量は\textbf{多くの独立した小さな要因の和}として書ける．たとえば女性の身長 $y_i$ は，
+
+\[
+  y_i
+  = a + b\cdot(\text{母親の遺伝子}_i)
+    + c\cdot(\text{父親の遺伝子}_i)
+    + d\cdot(\text{食事}_i)
+    + e\cdot(\text{疾患歴}_i)
+    + \cdots
+\]
+
+のような\textbf{加法モデル（additive model）}で近似できる．
+各要因が互いに独立で，かつどれも全体に対して「小さい」寄与しかしないとき，
+\textbf{中心極限定理（CLT）}により和は正規分布に近づく．
+
+\begin{thmbox}{中心極限定理（CLT）の概要}
+$X_1, X_2, \ldots$ が独立同分布（i.i.d.），平均 $\mu$，分散 $\sigma^2 < \infty$ ならば，
+\[
+  \sqrt{n}\,\frac{\bar{X}_n - \mu}{\sigma}
+  \;\xrightarrow{d}\; \mathrm{Normal}(0,\, 1)
+  \quad (n \to \infty).
+\]
+\end{thmbox}
+
+CLT は分布の形を問わない（一様分布でも指数分布でも）ため，
+$n$ が十分大きければ標本平均は必ず正規分布で近似できる．
+身長データのように，各要因が類似したスケールの寄与を多数持つ場合，
+$n$ が小さくても近似は良好になりやすい．
+
+
+% ===========================
+\section{例：イギリス人女性の身長データ}
+% ===========================
+
+\begin{exbox}{Karl Pearson の家族調査データ}
+カール・ピアソンは 1893〜1898 年にかけてイギリスの 1,100 家族を調査した．
+そのうち 18 歳以上の女性 $n = 1375$ 人の身長（インチ）について，
+
+\[
+  \bar{y} = 63.75 \text{ インチ} \approx 161.9 \text{ cm},
+  \qquad
+  s = 2.62 \text{ インチ} \approx 6.65 \text{ cm}
+\]
+
+であった．正規モデルを当てはめると：
+\begin{itemize}
+  \item 95\% 区間の推定値：$63.75 \pm 2 \times 2.62 = [58.51,\; 68.99]$ インチ
+        （$\approx$ $[148.6,\; 175.2]$ cm）
+  \item $\pm 1\sigma$ 内の割合：理論値 68.3\%
+\end{itemize}
+
+身長は上述の加法モデルで説明できるため，正規モデルは良い近似を与える．
+\end{exbox}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm, height=6cm,
+  domain=55:73, samples=300,
+  xmin=55, xmax=73, ymin=0, ymax=0.17,
+  xlabel={身長（インチ）}, ylabel={密度},
+  title={$\mathrm{Normal}(63.75,\; 2.62^2)$ の密度},
+  every axis/.append style={font=\small},
+  xtick={58.51, 61.13, 63.75, 66.37, 68.99},
+  xticklabels={$\bar{y}-2s$, $\bar{y}-s$, $\bar{y}$, $\bar{y}+s$, $\bar{y}+2s$},
+  x tick label style={font=\footnotesize, rotate=20, anchor=east},
+]
+% shading ±2s
+\addplot[name path=f2, draw=none]
+  {1/(2.62*sqrt(2*pi))*exp(-((x-63.75)^2)/(2*2.62^2))};
+\path[name path=ax2] (axis cs:58.51,0) -- (axis cs:68.99,0);
+\addplot[fill=blue!15, fill opacity=0.7]
+  fill between[of=f2 and ax2, soft clip={domain=58.51:68.99}];
+% shading ±1s
+\addplot[name path=f1, draw=none]
+  {1/(2.62*sqrt(2*pi))*exp(-((x-63.75)^2)/(2*2.62^2))};
+\path[name path=ax1] (axis cs:61.13,0) -- (axis cs:66.37,0);
+\addplot[fill=blue!40, fill opacity=0.7]
+  fill between[of=f1 and ax1, soft clip={domain=61.13:66.37}];
+% main curve
+\addplot[blue!70!black, thick]
+  {1/(2.62*sqrt(2*pi))*exp(-((x-63.75)^2)/(2*2.62^2))};
+\node at (axis cs:63.75,0.09) {\footnotesize 68\%};
+\node at (axis cs:60,0.04) {\footnotesize 95\%};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+
+% ===========================
+\section{まとめ}
+% ===========================
+
+\begin{center}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{項目} & \textbf{内容} \\
+\midrule
+定義 &
+  $p(y|\theta,\sigma^2) = (2\pi\sigma^2)^{-1/2}
+   \exp\!\left(-\frac{(y-\theta)^2}{2\sigma^2}\right)$ \\[4pt]
+パラメータ &
+  $\theta$：平均（＝中央値＝モード），\quad $\sigma^2$：分散 \\[4pt]
+95\% ルール &
+  $P(|Y-\theta| \leq 1.96\sigma) = 0.95$；
+  「$2\sigma$ 以内」は近似 \\[4pt]
+線形安定性 &
+  独立な正規変数の線形結合はまた正規分布に従う \\[4pt]
+現実での正当化 &
+  加法モデル $+$ 中心極限定理 \\[4pt]
+R の注意 &
+  \texttt{rnorm(n, theta, sigma)}（$\sigma$，$\sigma^2$ でない） \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}
